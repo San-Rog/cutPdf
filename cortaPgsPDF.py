@@ -1,4 +1,4 @@
-import pymupdf
+import pymupdf  
 import streamlit as st
 import zipfile
 import os
