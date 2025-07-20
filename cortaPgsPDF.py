@@ -11,6 +11,24 @@ def extractText(filePdf, text):
         text += page.get_text()
     docPdf.close()
     return text
+    
+@st.cache_data
+def extractUrls(filePdf, text):
+    docPdf = pymupdf.open(filePdf)
+    allLinks = []
+    for p, page in enumerate(docPdf):
+        links = page.get_links()
+        for link in links:
+            st.write(link, p)
+            nameUrl = link["uri"]
+            numPgUrl = p + 1
+            locUrl = link["from"]
+            newText = f'{nameUrl}: página {numPgUrl} e localização: {locUrl}\n'
+            allLinks.append(newText)
+    #allLinksStr = list(set(allLinks))
+    text += ''.join(allLinks) 
+    docPdf.close()
+    return text
 
 @st.cache_data   
 def nameFile():
@@ -82,7 +100,7 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
     filesPdf = [docPdf]
     filesRead = []  
     name, ext = os.path.splitext(namePdf)
-    if mode == 1:
+    if mode in [1, 2]:
         text = ''
     for file in filesPdf:
         numPages = file.page_count
@@ -96,20 +114,38 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
             newPdf.insert_pdf(inputPdf, from_page=pageNum, to_page=pageNum)
             newPdf.save(outputPdf)
             if mode == 1:
-                text += extractText(outputPdf, text)                
+                text += extractText(outputPdf, text)  
+            elif mode == 2:
+                text += extractUrls(outputPdf, text)  
+            else:
+                if index != 4:
+                    outputPdf = rotatePdf(outputPdf, index) 
+                filesRead.append(outputPdf)
             newPdf.close()
-            if index != 4:
-                outputPdf = rotatePdf(outputPdf, index) 
-            filesRead.append(outputPdf)
     if mode == 0:
         downloadPdf(filesRead)
     else:
+        if mode == 1:
+            strLabel = "Download_text"
+        elif mode == 2:
+            strLabel = "Download_urls"
         outputPdf = f'{name}_{numPgOne + 1}_{numPgTwo}.txt'
-        st.download_button(label="Download_txt",
-                           data=text,
-                           file_name=outputPdf,
-                           mime="text/csv", 
-                           icon=":material/download:")
+        if len(text.strip()) > 0:
+            st.download_button(label=strLabel,
+                               data=text,
+                               file_name=outputPdf,
+                               mime="text/csv", 
+                               icon=":material/download:")
+        else:
+            if mode == 1:
+                strEmpty = f'🔴 arquivo {outputPdf}\nsem texto extraível!'
+            else:
+                strEmpty = f'🔴 arquivo {outputPdf} \nsem URL extraível!'
+            config(strEmpty)
+            
+@st.dialog(' ')
+def config(str):
+    st.text(str)           
     
 def iniFinally(mode):
     if mode == 0:
@@ -130,42 +166,48 @@ def iniFinally(mode):
         
 def main():
     global uploadPdf
-    uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
-                                 type=['pdf'], 
-                                 accept_multiple_files=False)
-    if uploadPdf is not None:
-        pdfName = uploadPdf.name
-        docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
-        valMx = docPdf.page_count  
-        colPgOne, colPgTwo, colSlider = st.columns(3)
-        numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
-                                         min_value=1, max_value=valMx)
-        numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
-                                         min_value=1, max_value=valMx)
-        valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, key=listKeys[2], value='0°')
-        colButtAct, colButtTxt, colButtSel, colButtDel, colClear = st.columns(5)
-        buttPgAct = colButtAct.button(label='Divisão', key=keysButts[0], use_container_width=True, icon=":material/cut:")
-        buttPgTxt = colButtTxt.button(label='Texto', key=keysButts[1], use_container_width=True, icon=":material/description:")
-        buttPgSel = colButtSel.button(label='Seleção', key=keysButts[2], use_container_width=True, icon=":material/list:")
-        buttPgDel = colButtDel.button(label='Deleção', key=keysButts[3], use_container_width=True, icon=":material/delete:")
-        buttPgClear = colClear.button(label='Limpeza', key=keysButts[4], use_container_width=True, icon=":material/square:")
-        if numPgTwo >= numPgOne: 
-            numPgIni = numPgOne
-            numPgFinal = numPgTwo
-        else:
-            numPgIni = numPgTwo
-            numPgFinal = numPgOne 
-        indexAng = valAngles.index(valPgAngle)
-        if buttPgAct:   
-            extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
-        if buttPgTxt: 
-            extractPgs(docPdf, numPgIni, numPgFinal, 1, pdfName, indexAng)
-        if buttPgSel:
-            selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
-        if buttPgDel: 
-            selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
-        if buttPgClear:
-            iniFinally(1)        
+    with st.container(border=6):
+        uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
+                                     type=['pdf'], 
+                                     accept_multiple_files=False)
+        if uploadPdf is not None:
+            pdfName = uploadPdf.name
+            docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
+            valMx = docPdf.page_count 
+            colPgOne, colPgTwo, colSlider = st.columns(3)
+            numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
+                                             min_value=1, max_value=valMx)
+            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
+                                             min_value=1, max_value=valMx)
+            valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
+                                                 key=listKeys[2], value=dictKeys[listKeys[2]])            
+            colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
+            buttPgAct = colButtAct.button(label='Divisão', key=keysButts[0], use_container_width=True, icon=":material/cut:")
+            buttPgTxt = colButtTxt.button(label='Texto', key=keysButts[1], use_container_width=True, icon=":material/description:")
+            buttPgSel = colButtSel.button(label='Seleção', key=keysButts[2], use_container_width=True, icon=":material/list:")
+            buttPgDel = colButtDel.button(label='Deleção', key=keysButts[3], use_container_width=True, icon=":material/delete:")
+            buttPgClear = colButtClear.button(label='Limpeza', key=keysButts[4], use_container_width=True, icon=":material/square:")
+            colButtUrl, colButtImg, colButtA, colButtB, colButtC = st.columns(5)
+            buttPdfUrl = colButtUrl.button(label='URLs', key=keysButts[5], use_container_width=True, icon=":material/delete:")
+            if numPgTwo >= numPgOne: 
+                numPgIni = numPgOne
+                numPgFinal = numPgTwo
+            else:
+                numPgIni = numPgTwo
+                numPgFinal = numPgOne 
+            indexAng = valAngles.index(valPgAngle)
+            if buttPgAct:   
+                extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
+            if buttPgTxt: 
+                extractPgs(docPdf, numPgIni, numPgFinal, 1, pdfName, indexAng)
+            if buttPgSel:
+                selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+            if buttPgDel: 
+                selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+            if buttPgClear:
+                iniFinally(1)   
+            if buttPdfUrl:
+                extractPgs(docPdf, numPgIni, numPgFinal, 2, pdfName, indexAng)
     
 if __name__ == '__main__':
     global dictKeys, listKeys 
@@ -174,10 +216,14 @@ if __name__ == '__main__':
                 'pgTwo': 1, 
                 'pgAngle': '0°'}
     listKeys = list(dictKeys.keys())
-    keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear']
+    keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
+                 'buttUrls']
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:")
+    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", 
+                      layout='wide')
     st.cache_data.clear() 
+    iniFinally(0)
+    main()
     iniFinally(0)
     main()
 
