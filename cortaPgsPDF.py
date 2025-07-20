@@ -219,12 +219,10 @@ if __name__ == '__main__':
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
                  'buttUrls']
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:")
+    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", layou='wide')
     st.cache_data.clear() 
     iniFinally(0)
     main()
-    iniFinally(0)
-    main()
-
+   
 
 
