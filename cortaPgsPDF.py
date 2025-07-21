@@ -3,33 +3,49 @@ import streamlit as st
 import zipfile
 import os
 import datetime
+from PyPDF2 import PdfReader, PdfWriter
 
-@st.cache_data
-def extractText(filePdf, text):
+@st.cache_data  
+def extractText(filePdf):
+    text = ''
     docPdf = pymupdf.open(filePdf)
     for page in docPdf:
-        text += page.get_text()
+       text += page.get_text()
     docPdf.close()
     return text
-    
+        
 @st.cache_data
-def extractUrls(filePdf, text):
+def extractUrls(filePdf):
     docPdf = pymupdf.open(filePdf)
     allLinks = []
     for p, page in enumerate(docPdf):
         links = page.get_links()
         for link in links:
-            st.write(link, p)
             nameUrl = link["uri"]
-            numPgUrl = p + 1
-            locUrl = link["from"]
-            newText = f'{nameUrl}: página {numPgUrl} e localização: {locUrl}\n'
+            fromUrl = link["from"]
+            newText = f'{nameUrl}; coordenadas: {fromUrl}\n'
             allLinks.append(newText)
-    #allLinksStr = list(set(allLinks))
-    text += ''.join(allLinks) 
+    text = ''.join(allLinks) 
     docPdf.close()
     return text
 
+def extractImgs(filePdf):
+    docPdf = pymupdf.open(filePdf)
+    allImgName = []
+    for p, page in enumerate(docPdf):
+        imageList = page.get_images(full=True)
+        if imageList:
+            for i, img in enumerate(imageList):
+                xref = img[0]
+                baseImg = docPdf.extract_image(xref)
+                imgBytes = baseImg["image"]
+                imgExt = baseImg["ext"]
+                imgName = f"image_{p+1}_{i+1}.{imgExt}"
+                with open(imgName, "wb") as fileImg:
+                    fileImg.write(imgBytes)
+                allImgName.append(imgName)
+    return allImgName
+    
 @st.cache_data   
 def nameFile():
     symbols = ['-', ':', '.']
@@ -41,17 +57,17 @@ def nameFile():
         pass
     return nowTime
 
-def downloadPdf(filesPdf):
+def downalodExt(files):
     fileTmp = f'{nameFile()}_tempFile.zip'
     fileZip = f'file_{nameFile()}.zip'
-    for filePdf in filesPdf:
-        with open(filePdf, "rb") as pdf_file:
-            PDFbyte = pdf_file.read()
-        with zipfile.ZipFile(fileTmp, 'a') as pdf_file:
-            pdf_file.writestr(filePdf, PDFbyte)
+    for file in files:
+        with open(file, "rb") as extFile:
+           PDFbyte = extFile.read()
+        with zipfile.ZipFile(fileTmp, 'a') as extFile:
+           extFile.writestr(file, PDFbyte)
     nFiles = len(fileTmp)
     if nFiles > 0:
-        st.success(f'Gerado(s) {len(filesPdf)} arquivo(s)', icon='ℹ️')
+        st.success(f'Gerado(s) {len(files)} arquivo(s)', icon='ℹ️')
         with open(fileTmp, "rb") as file:
             st.download_button(label="Download_zip",
                                data=file,
@@ -70,17 +86,98 @@ def rotatePdf(filePdf, index):
     docPdf.save(output)
     docPdf.close()
     return output
-                               
+    
+def savePdf(outputBase, contPartes, writer):
+    outputPdf = f"{outputBase}{contPartes + 1}.pdf"
+    with open(outputPdf, "wb") as outputFile:
+        writer.write(outputFile)
+    docPdf = pymupdf.open(outputFile)
+    countPg.append(len(docPdf))
+    docPdf.close()
+    return outputPdf
+
+def divideBySize(inputPdf, sizeMax, outputBase):
+    filesCutSave = []
+    try:
+        reader = PdfReader(inputPdf)
+        nPgs = len(reader.pages)
+        sizeActual = 0
+        contPartes = 0
+        writer = PdfWriter()
+        for i in range(nPgs):
+            nameTeste = f'teste_{i+1}.pdf'
+            namesTeste.append(nameTeste)
+            page = reader.pages[i]
+            writer.add_page(page) 
+            with open(nameTeste, 'wb') as g:
+                writer.write(g)
+            sizeActual = os.path.getsize(nameTeste)/(1024**2)
+            if sizeActual >= sizeMax:
+                outputPdf = savePdf(outputBase, contPartes, writer)
+                filesCutSave.append(outputPdf)
+                writer = PdfWriter()
+                sizeActual = 0
+                contPartes += 1
+        if len(writer.pages) > 0:
+            outputPdf = savePdf(outputBase, contPartes, writer)
+            filesCutSave.append(outputPdf)
+    except Exception as e:
+        st.error(f"Ocorreu um erro: {e} - página {i+1}", icon='🛑')
+    return filesCutSave        
+    
+def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
+    numPgOne -= 1    
+    inputPdf = docPdf
+    name, ext = os.path.splitext(namePdf)
+    outputPdf = 'temp_sel.pdf'
+    listSel = [pg for pg in range(numPgOne, numPgTwo)]
+    docPdf.select(listSel)
+    docPdf.save(outputPdf)
+    if index != 4:
+        outputPdf = rotatePdf(outputPdf, index) 
+    docPdf.close()
+    inputPdf = outputPdf
+    sizeMaxStr = str(sizeMax).replace('.', '_')
+    outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
+    filesCutSave = divideBySize(inputPdf, sizeMax, outputBase)
+    downalodExt(filesCutSave)
+        
+def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf)
+    filesImg = extractImgs(outputPdf)
+    downalodExt(filesImg)
+    
+def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf)
+    if mode == 0:
+        text = extractText(outputPdf)
+        strLabel = "Download_text"
+        outputTxt = f'{namePdf}_{numPgOne}_{numPgTwo}_text.txt'
+        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem texto extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
+    else:
+        text = extractUrls(outputPdf)
+        strLabel = "Download_urls"
+        outputTxt = f'{namePdf}_{numPgOne}_{numPgTwo}_urls.txt'
+        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem URL extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
+    if len(text.strip()) > 0:
+        st.download_button(label=strLabel,
+                           data=text,
+                           file_name=outputTxt,
+                           mime="text/csv", 
+                           icon=":material/download:")
+    else:
+        config(strEmpty)    
+                                   
 def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     numPgOne -= 1
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
     if mode == 0:
-        outputPdf = f'{name}_sel_{numPgOne}_{numPgTwo}{ext}'
+        outputPdf = f'{name}_sel_{numPgOne + 1}_{numPgTwo}{ext}'
         listSel = [pg for pg in range(numPgOne, numPgTwo)]
     else:
         numPages = inputPdf.page_count
-        outputPdf = f'{name}_del_{numPgOne}_{numPgTwo}{ext}'
+        outputPdf = f'{name}_del_{numPgOne + 1}_{numPgTwo}{ext}'
         listSel = [pg for pg in range(numPages) if pg not in range(numPgOne, numPgTwo)]
     docPdf.select(listSel)
     docPdf.save(outputPdf)
@@ -100,53 +197,27 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
     filesPdf = [docPdf]
     filesRead = []  
     name, ext = os.path.splitext(namePdf)
-    if mode in [1, 2]:
-        text = ''
     for file in filesPdf:
         numPages = file.page_count
         diffPg = abs(numPgTwo - numPgOne)
         minPg = min([numPgOne, numPgTwo])
         listPg = [pg for pg in range(minPg, diffPg)]
-        for pageNum in listPg:
+        for p, pageNum in enumerate(listPg):
             inputPdf = file
             outputPdf = f'{name}_{pageNum + 1}.pdf'
             newPdf = pymupdf.open()
             newPdf.insert_pdf(inputPdf, from_page=pageNum, to_page=pageNum)
             newPdf.save(outputPdf)
-            if mode == 1:
-                text += extractText(outputPdf, text)  
-            elif mode == 2:
-                text += extractUrls(outputPdf, text)  
-            else:
-                if index != 4:
-                    outputPdf = rotatePdf(outputPdf, index) 
-                filesRead.append(outputPdf)
+            if index != 4:
+                outputPdf = rotatePdf(outputPdf, index) 
+            filesRead.append(outputPdf)
             newPdf.close()
-    if mode == 0:
-        downloadPdf(filesRead)
-    else:
-        if mode == 1:
-            strLabel = "Download_text"
-        elif mode == 2:
-            strLabel = "Download_urls"
-        outputPdf = f'{name}_{numPgOne + 1}_{numPgTwo}.txt'
-        if len(text.strip()) > 0:
-            st.download_button(label=strLabel,
-                               data=text,
-                               file_name=outputPdf,
-                               mime="text/csv", 
-                               icon=":material/download:")
-        else:
-            if mode == 1:
-                strEmpty = f'🔴 arquivo {outputPdf}\nsem texto extraível!'
-            else:
-                strEmpty = f'🔴 arquivo {outputPdf} \nsem URL extraível!'
-            config(strEmpty)
-            
+    downalodExt(filesRead)
+                
 @st.dialog(' ')
 def config(str):
     st.text(str)           
-    
+        
 def iniFinally(mode):
     if mode == 0:
         for key in listKeys:
@@ -163,9 +234,10 @@ def iniFinally(mode):
             pass  
         iniFinally(0)
         st.rerun()
-        
+
 def main():
     global uploadPdf
+    global valMx
     with st.container(border=6):
         uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
                                      type=['pdf'], 
@@ -174,21 +246,26 @@ def main():
             pdfName = uploadPdf.name
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
-            colPgOne, colPgTwo, colSlider = st.columns(3)
+            valMxSize = round(uploadPdf.size/(1024**2), 2)
+            colPgOne, colPgTwo, colSlider, colSize = st.columns(4)
             numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
-            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
+            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], value=valMx, 
                                              min_value=1, max_value=valMx)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
-                                                 key=listKeys[2], value=dictKeys[listKeys[2]])            
+                                                 key=listKeys[2], value=valAngles[4])     
+            valPgSize = colSize.number_input(label='Tamanho para divisão (Mb)', key=listKeys[3], 
+                                             value=0.05, step=0.05, max_value=valMxSize)
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
-            buttPgAct = colButtAct.button(label='Divisão', key=keysButts[0], use_container_width=True, icon=":material/cut:")
+            buttPgAct = colButtAct.button(label='Corte/páginas', key=keysButts[0], use_container_width=True, icon=":material/cut:")
             buttPgTxt = colButtTxt.button(label='Texto', key=keysButts[1], use_container_width=True, icon=":material/description:")
             buttPgSel = colButtSel.button(label='Seleção', key=keysButts[2], use_container_width=True, icon=":material/list:")
             buttPgDel = colButtDel.button(label='Deleção', key=keysButts[3], use_container_width=True, icon=":material/delete:")
             buttPgClear = colButtClear.button(label='Limpeza', key=keysButts[4], use_container_width=True, icon=":material/square:")
-            colButtUrl, colButtImg, colButtA, colButtB, colButtC = st.columns(5)
-            buttPdfUrl = colButtUrl.button(label='URLs', key=keysButts[5], use_container_width=True, icon=":material/delete:")
+            colButtUrl, colButtImg, colButtSize, colButtB, colButtC = st.columns(5)
+            buttPdfUrl = colButtUrl.button(label='URLs', key=keysButts[5], use_container_width=True, icon=":material/link:")
+            buttPdfImg = colButtImg.button(label='Imagens', key=keysButts[6], use_container_width=True, icon=":material/image:")
+            buttPdfSize = colButtSize.button(label='Corte/tamanho', key=keysButts[7], use_container_width=True, icon=":material/docs:")
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -199,30 +276,38 @@ def main():
             if buttPgAct:   
                 extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
             if buttPgTxt: 
-                extractPgs(docPdf, numPgIni, numPgFinal, 1, pdfName, indexAng)
+                selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0)
+            if buttPdfUrl:
+                selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1)
+            if buttPdfImg: 
+                selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2)
             if buttPgSel:
                 selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
             if buttPgDel: 
                 selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+            if buttPdfSize:
+                selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
             if buttPgClear:
-                iniFinally(1)   
-            if buttPdfUrl:
-                extractPgs(docPdf, numPgIni, numPgFinal, 2, pdfName, indexAng)
-    
+                dictKeys[listKeys[1]] = valMxSize
+                iniFinally(1)                
+        
 if __name__ == '__main__':
     global dictKeys, listKeys 
     global keysButts, valAngles
+    global countPg
+    global namesTeste
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
-                'pgAngle': '0°'}
+                'pgAngle': '0°', 
+                'pgSize': 0.05}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
-                 'buttUrls']
+                 'buttUrls', 'buttImgs', 'buttSize']
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", layout='wide')
+    countPg = []
+    namesTeste = []
+    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", 
+                       layout='wide')
     st.cache_data.clear() 
     iniFinally(0)
     main()
-   
-
-
