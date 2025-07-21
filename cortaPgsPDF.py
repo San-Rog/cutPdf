@@ -250,7 +250,7 @@ def main():
             colPgOne, colPgTwo, colSlider, colSize = st.columns(4)
             numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
-            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], value=valMx, 
+            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
                                              min_value=1, max_value=valMx)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
                                                  key=listKeys[2], value=valAngles[4])     
