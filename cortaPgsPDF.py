@@ -142,7 +142,7 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     inputPdf = outputPdf
     sizeMaxStr = str(sizeMax).replace('.', '_')
-    sizeSplit = sizeMaxStr.split('.')
+    sizeSplit = sizeMaxStr.split('_')
     st.write(sizeSplit)
     try:
        sizeMaxStr = sizeSplit[0] + '_' + sizeSplit[1][:2]
