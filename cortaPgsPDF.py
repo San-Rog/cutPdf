@@ -257,7 +257,7 @@ def main():
             numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
                                              min_value=1, max_value=valMx)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
-                                                 key=listKeys[2], value=dictKeys[2])     
+                                                 key=listKeys[2], value=dictKeys[listKeys[2]])     
             valPgSize = colSize.number_input(label='Tamanho para divisão (Mb)', key=listKeys[3], 
                                              value=0.05, step=0.05, max_value=valMxSize)
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
@@ -310,7 +310,7 @@ if __name__ == '__main__':
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
-                'pgAngle': valAngle[4], 
+                'pgAngle': valAngles[4], 
                 'pgSize': 0.05}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
