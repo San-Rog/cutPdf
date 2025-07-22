@@ -138,7 +138,7 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     docPdf.close()
     return outputPdf    
     
-def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax)
+def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     inputPdf = outputPdf
     sizeMax = f'{float(sizeMax):.2f}'
