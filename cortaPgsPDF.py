@@ -144,7 +144,7 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     sizeMaxStr = str(sizeMax).replace('.', '_')
     sizeSplit = sizeMaxStr.split('.')
     try:
-       sizeMaxStr = sizeSplit[0] + + '_' + numSplit[1][:2]
+       sizeMaxStr = sizeSplit[0] + + '_' + sizeSplit[1][:2]
     except:
         pass
     outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
