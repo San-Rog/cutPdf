@@ -57,7 +57,7 @@ def nameFile():
         pass
     return nowTime
 
-def downalodExt(files):
+def downloadExt(files):
     fileTmp = f'{nameFile()}_tempFile.zip'
     fileZip = f'file_{nameFile()}.zip'
     for file in files:
@@ -123,9 +123,9 @@ def divideBySize(inputPdf, sizeMax, outputBase):
             filesCutSave.append(outputPdf)
     except Exception as e:
         st.error(f"Ocorreu um erro: {e} - página {i+1}", icon='🛑')
-    return filesCutSave        
-    
-def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
+    return filesCutSave    
+
+def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     numPgOne -= 1    
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
@@ -136,19 +136,23 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     if index != 4:
         outputPdf = rotatePdf(outputPdf, index) 
     docPdf.close()
+    return outputPdf    
+    
+def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     inputPdf = outputPdf
     sizeMaxStr = str(sizeMax).replace('.', '_')
     outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
     filesCutSave = divideBySize(inputPdf, sizeMax, outputBase)
-    downalodExt(filesCutSave)
+    downloadExt(filesCutSave)
         
-def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf)
+def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     filesImg = extractImgs(outputPdf)
-    downalodExt(filesImg)
+    downloadExt(filesImg)
     
-def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf)
+def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     if mode == 0:
         text = extractText(outputPdf)
         strLabel = "Download_text"
@@ -167,7 +171,7 @@ def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode):
                            icon=":material/download:")
     else:
         config(strEmpty)    
-                                   
+                                          
 def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     numPgOne -= 1
     inputPdf = docPdf
@@ -212,7 +216,7 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
                 outputPdf = rotatePdf(outputPdf, index) 
             filesRead.append(outputPdf)
             newPdf.close()
-    downalodExt(filesRead)
+    downloadExt(filesRead)
                 
 @st.dialog(' ')
 def config(str):
@@ -273,22 +277,29 @@ def main():
                 numPgIni = numPgTwo
                 numPgFinal = numPgOne 
             indexAng = valAngles.index(valPgAngle)
-            if buttPgAct:   
-                extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
+            exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo} do arquivo \n{pdfName}'
+            if buttPgAct:  
+                with st.spinner(f'Dividindo {exprPre}!'):
+                    extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
             if buttPgTxt: 
-                selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0)
+                with st.spinner(f'Extraindo texto d{exprPre}!'):
+                    selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
             if buttPdfUrl:
-                selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1)
+                with st.spinner(f'Extraindo links/URLs d{exprPre}!'):
+                    selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
             if buttPdfImg: 
-                selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2)
+                with st.spinner(f'Extraindo imagens d{exprPre}!'):
+                    selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2, indexAng)
             if buttPgSel:
-                selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                with st.spinner(f'Criando arquivo com {exprPre}!'):
+                    selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
             if buttPgDel: 
-                selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                with st.spinner(f'Criando arquivo com deleção d{exprPre}!'):
+                    selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
             if buttPdfSize:
-                selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
+                with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
+                    selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
             if buttPgClear:
-                dictKeys[listKeys[1]] = valMxSize
                 iniFinally(1)                
         
 if __name__ == '__main__':
