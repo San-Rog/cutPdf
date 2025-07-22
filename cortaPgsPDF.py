@@ -139,6 +139,7 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     return outputPdf    
     
 def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
+    sizeMaxStr = str(round(float(sizeMax), 2))
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     inputPdf = outputPdf
     sizeMaxStr = str(sizeMax).replace('.', '_')
