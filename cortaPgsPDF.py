@@ -129,7 +129,7 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     numPgOne -= 1    
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
-    outputPdf = 'temp_sel.pdf'
+    outputPdf = f'{namePdf}_{numPgOne}_{numPgTwo}_pdf'
     listSel = [pg for pg in range(numPgOne, numPgTwo)]
     docPdf.select(listSel)
     docPdf.save(outputPdf)
