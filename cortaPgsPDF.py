@@ -142,7 +142,7 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     inputPdf = outputPdf
     sizeMaxStr = str(sizeMax).replace('.', '_')
-    sizeTeste = str(sizeMax).split('.'))
+    sizeTeste = str(sizeMax).split('.')
     st.write(sizeTeste)
     outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
     filesCutSave = divideBySize(inputPdf, sizeMax, outputBase)
