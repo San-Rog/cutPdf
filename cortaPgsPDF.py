@@ -90,10 +90,10 @@ def startCompress(filePdf, vComp):
     outputPdf = name + '_compr_' + vComp[-1] + ext
     st.text(outputPdf)
     progExe = dirBin + '\\gswin64.exe'
-    SW_HIDE = 0
-    info = subprocess.STARTUPINFO()
-    info.dwFlags = subprocess.STARTF_USESHOWWINDOW
-    info.wShowWindow = SW_HIDE 
+    #SW_HIDE = 0
+    #info = subprocess.STARTUPINFO()
+    #info.dwFlags = subprocess.STARTF_USESHOWWINDOW
+    #info.wShowWindow = SW_HIDE 
     try:
         subprocess.call([progExe,
                          '-dSAFE',
@@ -113,7 +113,7 @@ def startCompress(filePdf, vComp):
                          '-dQFactor=' + str(vComp[3]),
                          '-dJPEGQ=' + str(vComp[4]),                   
                          '-sOutputFile=' + outputPdf,
-                         inputPdf], startupinfo=info)
+                         inputPdf])
     except Exception as error:
         st.text(error)
     return outputPdf
