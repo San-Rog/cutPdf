@@ -90,7 +90,7 @@ def startCompress(filePdf, vComp):
     outputPdf = name + '_compr_' + vComp[-1] + ext
     st.text(outputPdf)
     #progExe = dirBin + '\\gswin64.exe'
-    progExe = '/mount/src/cutpdf/bin/gswin64.exe'
+    progExe = 'gswin64.exe'
     #SW_HIDE = 0
     #info = subprocess.STARTUPINFO()
     #info.dwFlags = subprocess.STARTF_USESHOWWINDOW
