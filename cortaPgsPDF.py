@@ -89,7 +89,8 @@ def startCompress(filePdf, vComp):
     name, ext = os.path.splitext(filePdf)
     outputPdf = name + '_compr_' + vComp[-1] + ext
     st.text(outputPdf)
-    progExe = dirBin + '\\gswin64.exe'
+    #progExe = dirBin + '\\gswin64.exe'
+    progExe = './bin/gswin64.exe'
     #SW_HIDE = 0
     #info = subprocess.STARTUPINFO()
     #info.dwFlags = subprocess.STARTF_USESHOWWINDOW
@@ -457,8 +458,6 @@ if __name__ == '__main__':
                  'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttOCR']
     countPg = []
     namesTeste = []
-    dirActual = os.getcwd()
-    dirBin = os.path.join(dirActual, 'bin')
     st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
