@@ -431,8 +431,9 @@ def main():
                 with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
                     selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
             if buttPdfComp:
-                with st.spinner(f'Comprimindo {exprPre} com nível de compressão {valPgComp}.'):
-                    compressPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgComp)
+                pass
+                #with st.spinner(f'Comprimindo {exprPre} com nível de compressão {valPgComp}.'):
+                    #compressPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgComp)
             if buttPdfOCR:
                 pass
                 #with st.spinner(f'Aplicando OCR sobre {exprPre} em pedaços de {valPgSize}Mb!'):
