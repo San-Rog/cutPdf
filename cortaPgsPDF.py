@@ -89,8 +89,8 @@ def startCompress(filePdf, vComp):
     name, ext = os.path.splitext(filePdf)
     outputPdf = name + '_compr_' + vComp[-1] + ext
     st.text(outputPdf)
-    #progExe = dirBin + '\\gswin64.exe'
-    progExe = 'gswin64.exe'
+    progExe = os.path.join(os.getcwd(), 'gswin64c.exe')
+    #progExe = 'gswin64.exe'
     #SW_HIDE = 0
     #info = subprocess.STARTUPINFO()
     #info.dwFlags = subprocess.STARTF_USESHOWWINDOW
