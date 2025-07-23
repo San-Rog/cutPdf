@@ -457,10 +457,10 @@ if __name__ == '__main__':
                  'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttOCR']
     countPg = []
     namesTeste = []
-    dirBin = r'C:\Users\ACER\Documents\bin'
+    dirActual = os.getcwd()
+    dirBin = os.path.join(dirActual, 'bin')
     st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
-    st.write(os.getcwd())
-    #iniFinally(0)
-    #main()
+    iniFinally(0)
+    main()
