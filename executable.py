@@ -3,4 +3,4 @@ import streamlit as st
 import subprocess
 import sys
 
-subprocess.run([f"{sys.executable}", "script.py"])
+subprocess.run([f"{sys.executable}", "cortaPgsPDF.py"])
