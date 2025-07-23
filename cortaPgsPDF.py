@@ -446,7 +446,6 @@ if __name__ == '__main__':
     global keysButts, valAngles, valComps
     global countPg
     global namesTeste
-    global dirBin
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
     valComps = ['mínimo', 'regular', 'bom', 'muito bom', 'ótimo', 'radical']    
     dictKeys = {'pgOne': 1, 
