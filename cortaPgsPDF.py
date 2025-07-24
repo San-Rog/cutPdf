@@ -44,6 +44,35 @@ def extractUrls(filePdf):
     docPdf.close()
     return text
     
+def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
+    colMens, colDown = st.columns([8, 2]) 
+    if value == 1:
+        if modelButt == 'zip': 
+                with open(fileTmp, "rb") as file:
+                    colDown.download_button(label="Download",
+                                            data=file,
+                                            file_name=fileFinal,
+                                            mime='application/zip', 
+                                            icon=":material/download:", 
+                                            use_container_width=True)
+        colMens.success(f'Gerado o zipado :blue[**{fileFinal}**] com ***{nFiles}*** arquivo(s). Clique no botão ao lado 👉.', icon='✔️') 
+    elif value == 0:
+        colDown.download_button(label='Download', 
+                           data=fileTmp,
+                           file_name=fileFinal,
+                           mime='application/octet-stream', 
+                           icon=":material/download:", 
+                           use_container_width=True)
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**]. Clique no botão ao lado 👉.', icon='✔️') 
+    elif value == 2:
+        colDown.download_button(label='Download',
+                           data=fileTmp,
+                           file_name=fileFinal,
+                           mime="text/csv", 
+                           icon=":material/download:", 
+                           use_container_width=True)
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**]. Clique no botão ao lado 👉.', icon='✔️')
+    
 def extractImgs(filePdf):
     docPdf = pymupdf.open(filePdf)
     allImgName = []
@@ -61,23 +90,20 @@ def extractImgs(filePdf):
                 allImgName.append(imgName)
     return allImgName
 
-def downloadExt(files):
+def downloadExt(files, namePdf, numPgOne, numPgTwo, obj):
     fileTmp = f'{nameFile()}_tempFile.zip'
-    fileZip = f'file_{nameFile()}.zip'
+    fileZip = f'namePdf_{numPgOne}_{numPgTwo}_{nameFile()}.zip'
     for file in files:
         with open(file, "rb") as extFile:
            PDFbyte = extFile.read()
         with zipfile.ZipFile(fileTmp, 'a') as extFile:
            extFile.writestr(file, PDFbyte)
-    nFiles = len(fileTmp)
+    nFiles = len(files) 
     if nFiles > 0:
-        st.success(f'Gerado(s) {len(files)} arquivo(s)', icon='ℹ️')
-        with open(fileTmp, "rb") as file:
-            st.download_button(label="Download_zip",
-                               data=file,
-                               file_name=fileZip,
-                               mime='application/zip', 
-                               icon=":material/download:")
+        mensResult(1, len(files), 'zip', fileTmp, fileZip)
+    else:
+        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem {obj} extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
+        config(strEmpty)
 
 def rotatePdf(filePdf, index):
     inputPdf = filePdf
@@ -165,7 +191,7 @@ def addWatermark(inputPdf, valMark):
 def selPdfMark(docPdf, numPgOne, numPgTwo, namePdf, index, valMark):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     pdfMark = addWatermark(outputPdf, valMark)
-    downPdfUnique(pdfMark)            
+    downPdfUnique(pdfMark, numPgOne, numPgTwo, namePdf)           
     
 def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
@@ -182,12 +208,12 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
         pass
     outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
     filesCutSave = divideBySize(inputPdf, sizeMax, outputBase)
-    downloadExt(filesCutSave)
+    downloadExt(filesCutSave, namePdf, numPgOne, numPgTwo, 'pedaços')
         
 def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     filesImg = extractImgs(outputPdf)
-    downloadExt(filesImg)
+    downloadExt(filesImg, namePdf, numPgOne, numPgTwo, 'imagens')
     
 def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
@@ -202,11 +228,13 @@ def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
         outputTxt = f'{namePdf}_{numPgOne}_{numPgTwo}_urls.txt'
         strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem URL extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
     if len(text.strip()) > 0:
-        st.download_button(label=strLabel,
-                           data=text,
-                           file_name=outputTxt,
-                           mime="text/csv", 
-                           icon=":material/download:")
+        mensResult(2, 1, 'txt', text, outputTxt)
+        #colResult, colDow = st.columns([10, 2])
+        #st.download_button(label=strLabel,
+        #                   data=text,
+        #                   file_name=outputTxt,
+        #                   mime="text/csv", 
+        #                   icon=":material/download:")
     else:
         config(strEmpty)    
                                           
@@ -226,17 +254,14 @@ def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     docPdf.close()
     if index != 4:
         outputPdf = rotatePdf(outputPdf, index)       
-    downPdfUnique(outputPdf) 
+    downPdfUnique(outputPdf, numPgOne, numPgTwo, namePdf) 
                        
-def downPdfUnique(outputPdf):
+def downPdfUnique(outputPdf, numPgOne, numPgTwo, namePdf):
     with open(outputPdf, "rb") as pdf_file:
         PDFbyte = pdf_file.read()
-    st.download_button(label='Download_pdf', 
-                       data=PDFbyte,
-                       file_name=outputPdf,
-                       mime='application/octet-stream', 
-                       icon=":material/download:") 
-
+    if len(PDFbyte) > 0:
+        mensResult(0, 1, 'pdf', PDFbyte, outputPdf)
+        
 def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
     numPgOne -= 1
     filesPdf = [docPdf]
@@ -257,33 +282,52 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
                 outputPdf = rotatePdf(outputPdf, index) 
             filesRead.append(outputPdf)
             newPdf.close()
-    downloadExt(filesRead)
+    downloadExt(filesRead, namePdf, numPgOne, numPgTwo, 'páginas')
 
 def exibeInfo(docPdf):
     @st.dialog(' ')
     def config():
+        trace= '_'*10
         nPgs = docPdf.page_count
-        size = uploadPdf.size
+        size = round(uploadPdf.size/1024, 2)
+        if size > 1024:
+            size /= 1024
+            size = round(size, 2)
+            unit = 'MB'
+        else:
+            unit = 'KB'
         typFile = uploadPdf.type
-        #dirty = docPdf.is_dirty
-        #pdfYes = docPdf.is_pdf
-        ##close = docPdf.is_closed
-        #formPdf = docPdf.is_form_pdf
-        #encry = docPdf.is_encrypted
+        dirty = docPdf.is_dirty
+        pdfYes = docPdf.is_pdf
+        close = docPdf.is_closed
+        formPdf = docPdf.is_form_pdf
+        encry = docPdf.is_encrypted
         pdfMeta = docPdf.metadata
-        dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
-                    'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
-                    'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
+        st.markdown(f'🗄️ **Tamanho**: {size}{unit}') 
+        st.markdown(f'📄️ **Total de páginas**: {nPgs}')
+        dictKeys = {'creator': '💂 **criador**', 'producer': '🔴 **responsável**', 'creationDate': '📅 **dia de criação**', 
+                    'modDate': '🕰️ **dia de modificação**', 'title': '#️⃣  **título**', 'author': '📕 **autor**', 'format': '⏹️ **formato**',
+                    'subject': '🖊️ **assunto**', 'keywords': '#️⃣  **palavras-chave**', 'encryption': '🔑 **criptografia**'}
         keys = [key for key in list(dictKeys.keys())]
         for key in keys:
             valueKey = dictKeys[key]
             metaKey = pdfMeta[key]
-            try:
-                if metaKey.strip() != '':
-                    strMeta = f'{dictKeys[key]}: {metaKey}'
-            except:
-                strMeta = f'{metaKey}\n'
-        st.write(pdfMeta)
+            if metaKey is None:
+                metaKey = trace
+            else:
+                if len(metaKey.strip()) == 0:
+                    metaKey = trace
+            st.markdown(f'{dictKeys[key]}: {metaKey}')
+            
+        #st.write(os.path.getsize(filePdf))
+        #st.markdown(f'🔴 **Número de acessos a módulos/submódulos do app**: {info[infoKeys[0]]}')
+        #st.markdown(f'📅 **Data de início da sessão**: {dateFullLang(info[infoKeys[1]])}')
+        #st.markdown(f'⏳ **Tempo de uso deste app**: {tempus} segundo(s).')
+        #st.markdown(f"📐 **Clique(s) no botão :blue[Cálculo]**: {calcK}.")
+        #st.markdown(f"👉 **Clique(s) no botão :blue[Arquivos]**: {fileK}.")
+        #st.markdown(f"👓 **Clique(s) no botão :blue[Acesso]**: {accessK}.")
+        #st.markdown(f"#️⃣ **Clique(s) no botão :blue[Feriados]**: {holidayK}.")
+        #st.markdown(f"📕 **Clique(s) no botão :blue[Limpeza]**: {clearK}.")
     config()
                 
 @st.dialog(' ')
@@ -310,6 +354,8 @@ def iniFinally(mode):
 def main():
     global uploadPdf
     global valMx
+    global sufix
+    sufix = ['']
     with st.container(border=6):
         uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
                                      type=['pdf'], 
@@ -369,9 +415,11 @@ def main():
                     selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
             if buttPdfUrl:
                 with st.spinner(f'Extraindo links/URLs d{exprPre}!'):
+                    sufix[0] = 'urls'
                     selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
             if buttPdfImg: 
                 with st.spinner(f'Extraindo imagens d{exprPre}!'):
+                    sufix[0] = 'imgs'
                     selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2, indexAng)
             if buttPgSel:
                 with st.spinner(f'Criando arquivo com {exprPre}!'):
