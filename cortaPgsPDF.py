@@ -283,8 +283,7 @@ def exibeInfo(docPdf):
                     strMeta = f'{dictKeys[key]}: {metaKey}'
             except:
                 strMeta = f'{metaKey}\n'
-            st.markdown(strMeta)
-        #st.write(pdfMeta)
+        st.write(pdfMeta)
     config()
                 
 @st.dialog(' ')
