@@ -280,9 +280,9 @@ def exibeInfo(docPdf):
             metaKey = pdfMeta[key]
             try:
                 if metaKey.strip() != '':
-                    infoStr = f'{dictKeys[key]}: {metaKey}'
+                    strMeta = f'{dictKeys[key]}: {metaKey}'
             except:
-                infoStr = f'{metaKey}\n'
+                strMeta = f'{metaKey}\n'
             st.markdown(infoStr)
         #st.write(pdfMeta)
     config()
