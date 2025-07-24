@@ -265,37 +265,26 @@ def exibeInfo(docPdf):
         nPgs = docPdf.page_count
         size = uploadPdf.size
         typFile = uploadPdf.type
-        dirty = docPdf.is_dirty
-        pdfYes = docPdf.is_pdf
-        close = docPdf.is_closed
-        formPdf = docPdf.is_form_pdf
-        encry = docPdf.is_encrypted
+        #dirty = docPdf.is_dirty
+        #pdfYes = docPdf.is_pdf
+        ##close = docPdf.is_closed
+        #formPdf = docPdf.is_form_pdf
+        #encry = docPdf.is_encrypted
         pdfMeta = docPdf.metadata
-        #st.write(pdfMeta)
-        dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
-                    'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
-                    'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
-        keys = [key for key in list(dictKeys.keys())]
-        for key in keys:
-            valueKey = dictKeys[key]
-            metaKey = pdfMeta[key]
-            try:
-                if metaKey.strip() != '':
-                    infoStr = f'{dictKeys[key]}: {metaKey}'
-            except:
-                infoStr = f'{metaKey}\n'
-            st.markdown(infoStr)
-        
-        
-        #st.write(os.path.getsize(filePdf))
-        #st.markdown(f'🔴 **Número de acessos a módulos/submódulos do app**: {info[infoKeys[0]]}')
-        #st.markdown(f'📅 **Data de início da sessão**: {dateFullLang(info[infoKeys[1]])}')
-        #st.markdown(f'⏳ **Tempo de uso deste app**: {tempus} segundo(s).')
-        #st.markdown(f"📐 **Clique(s) no botão :blue[Cálculo]**: {calcK}.")
-        #st.markdown(f"👉 **Clique(s) no botão :blue[Arquivos]**: {fileK}.")
-        #st.markdown(f"👓 **Clique(s) no botão :blue[Acesso]**: {accessK}.")
-        #st.markdown(f"#️⃣ **Clique(s) no botão :blue[Feriados]**: {holidayK}.")
-        #st.markdown(f"📕 **Clique(s) no botão :blue[Limpeza]**: {clearK}.")
+        #dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
+        #            'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
+        #            'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
+        #keys = [key for key in list(dictKeys.keys())]
+        #for key in keys:
+        #    valueKey = dictKeys[key]
+        #    metaKey = pdfMeta[key]
+        #    try:
+        #        if metaKey.strip() != '':
+        #            infoStr = f'{dictKeys[key]}: {metaKey}'
+        #    except:
+        #        infoStr = f'{metaKey}\n'
+        #    st.markdown(infoStr)
+        st.write(pdfMeta)
     config()
                 
 @st.dialog(' ')
