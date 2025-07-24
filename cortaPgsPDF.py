@@ -271,20 +271,20 @@ def exibeInfo(docPdf):
         #formPdf = docPdf.is_form_pdf
         #encry = docPdf.is_encrypted
         pdfMeta = docPdf.metadata
-        #dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
-        #            'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
-        #            'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
-        #keys = [key for key in list(dictKeys.keys())]
-        #for key in keys:
-        #    valueKey = dictKeys[key]
-        #    metaKey = pdfMeta[key]
-        #    try:
-        #        if metaKey.strip() != '':
-        #            infoStr = f'{dictKeys[key]}: {metaKey}'
-        #    except:
-        #        infoStr = f'{metaKey}\n'
-        #    st.markdown(infoStr)
-        st.write(pdfMeta)
+        dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
+                    'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
+                    'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
+        keys = [key for key in list(dictKeys.keys())]
+        for key in keys:
+            valueKey = dictKeys[key]
+            metaKey = pdfMeta[key]
+            try:
+                if metaKey.strip() != '':
+                    infoStr = f'{dictKeys[key]}: {metaKey}'
+            except:
+                infoStr = f'{metaKey}\n'
+            st.markdown(infoStr)
+        #st.write(pdfMeta)
     config()
                 
 @st.dialog(' ')
