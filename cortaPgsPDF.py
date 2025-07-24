@@ -318,16 +318,6 @@ def exibeInfo(docPdf):
                 if len(metaKey.strip()) == 0:
                     metaKey = trace
             st.markdown(f'{dictKeys[key]}: {metaKey}')
-            
-        #st.write(os.path.getsize(filePdf))
-        #st.markdown(f'🔴 **Número de acessos a módulos/submódulos do app**: {info[infoKeys[0]]}')
-        #st.markdown(f'📅 **Data de início da sessão**: {dateFullLang(info[infoKeys[1]])}')
-        #st.markdown(f'⏳ **Tempo de uso deste app**: {tempus} segundo(s).')
-        #st.markdown(f"📐 **Clique(s) no botão :blue[Cálculo]**: {calcK}.")
-        #st.markdown(f"👉 **Clique(s) no botão :blue[Arquivos]**: {fileK}.")
-        #st.markdown(f"👓 **Clique(s) no botão :blue[Acesso]**: {accessK}.")
-        #st.markdown(f"#️⃣ **Clique(s) no botão :blue[Feriados]**: {holidayK}.")
-        #st.markdown(f"📕 **Clique(s) no botão :blue[Limpeza]**: {clearK}.")
     config()
                 
 @st.dialog(' ')
