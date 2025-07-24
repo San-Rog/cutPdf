@@ -3,50 +3,11 @@ import streamlit as st
 import zipfile
 import os
 import numpy as np
+import pandas as pd
 import random
 import subprocess
 import datetime
 from PyPDF2 import PdfReader, PdfWriter
-
-@st.cache_data  
-def defineFator():
-    vetorCompr = [100, 95, 85, 70, 45, 25, 10]
-    vetorQual = [100, 95, 85, 70, 45, 20, 0]
-    vetorColor = [400, 200, 100, 50, 25, 15, 0]
-    vetorCinza = [400, 200, 100, 50, 25, 15, 0]
-    vetorMono = [400, 200, 100, 50, 25, 15, 0]
-    fatoresCompr = {valComps[0]: [(vetorCompr[1], vetorCompr[0]),
-                               (vetorQual[1], vetorQual[0]),
-                               (vetorColor[1], vetorColor[0]),
-                               (vetorCinza[1], vetorCinza[0]),
-                               (vetorMono[1], vetorMono[0])],                                                                             
-                    valComps[1]: [(vetorCompr[2], vetorCompr[1]-1),
-                                (vetorQual[2], vetorQual[1]-1),
-                                (vetorColor[2], vetorColor[1]-1),
-                                (vetorCinza[2], vetorCinza[1]-1),
-                                (vetorMono[2], vetorMono[1]-1)],
-                    valComps[2]:  [(vetorCompr[3], vetorCompr[2]-1),
-                             (vetorQual[3], vetorQual[2]-1),
-                             (vetorColor[3], vetorColor[2]-1),
-                             (vetorCinza[3], vetorCinza[2]-1),
-                             (vetorMono[3], vetorMono[2]-1)],
-                    valComps[3]: [(vetorCompr[4], vetorCompr[2]-1),
-                                  (vetorQual[4], vetorQual[3]-1),
-                                  (vetorColor[4], vetorColor[3]-1),
-                                  (vetorCinza[4], vetorCinza[3]-1),
-                                  (vetorMono[4], vetorMono[3]-1)],
-                    valComps[4]: [(vetorCompr[5], vetorCompr[4]-1),
-                              (vetorQual[5], vetorQual[4]-1),
-                              (vetorColor[5], vetorColor[4]-1),
-                              (vetorCinza[5], vetorCinza[4]-1),
-                              (vetorMono[5], vetorMono[4]-1)],
-                    valComps[5]: [(vetorCompr[6], vetorCompr[5]-1),
-                                (vetorQual[6], vetorQual[5]-1),
-                                (vetorColor[6], vetorColor[5]-1),
-                                (vetorCinza[6], vetorCinza[5]-1),
-                                (vetorMono[6], vetorMono[5]-1)]}
-    vComp = np.array([fatoresCompr])
-    return vComp
     
 @st.cache_data   
 def nameFile():
@@ -82,71 +43,6 @@ def extractUrls(filePdf):
     text = ''.join(allLinks) 
     docPdf.close()
     return text
-
-def startCompress(filePdf, vComp):
-    inputPdf = filePdf
-    st.text(inputPdf)
-    name, ext = os.path.splitext(filePdf)
-    outputPdf = name + '_compr_' + vComp[-1] + ext
-    st.text(outputPdf)
-    progExe = os.path.join(os.getcwd() + '/' + 'bin', 'gswin64c.exe')
-    #progExe = 'gswin64.exe'
-    #SW_HIDE = 0
-    #info = subprocess.STARTUPINFO()
-    #info.dwFlags = subprocess.STARTF_USESHOWWINDOW
-    #info.wShowWindow = SW_HIDE 
-    try:
-        subprocess.call([progExe,
-                         '-dSAFE',
-                         '-dBATCH',
-                         '-dNOPAUSE',
-                         '-sDEVICE=pdfwrite',
-                         '-dCompressFonts=true',
-                         '-dPDFSETTINGS=/ebook',
-                         '-dCOLORSCREEN=0',
-                         '-dDetectDuplicateImages=true',
-                         '-dDownsampleColorImages=true',                     
-                         '-dDownsampleGrayImages=true',
-                         '-dDownsampleMonoImages=true',
-                         '-dColorImageResolution=' + str(vComp[0]),
-                         '-dGrayImageResolution=' + str(vComp[1]),
-                         '-dMonoImageResolution=' + str(vComp[2]),
-                         '-dQFactor=' + str(vComp[3]),
-                         '-dJPEGQ=' + str(vComp[4]),                   
-                         '-sOutputFile=' + outputPdf,
-                         inputPdf])
-    except Exception as error:
-        st.text(error)
-    return outputPdf
-    
-def compressPdf(docPdf, numPgOne, numPgTwo, namePdf, index, comp):
-    inputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
-    sizeOne = os.path.getsize(inputPdf)/1024
-    sizeOneStr = f'{round(sizeOne, 2)}Kb'
-    vComp = defineFator()[0]
-    vCompFinal = []
-    vCompSel = vComp[comp]
-    for cp in vCompSel:
-        num = random.sample(range(cp[0], cp[1]), 1)
-        vCompFinal += num
-    vCompFinal.append(comp) 
-    outputPdf = startCompress(inputPdf, vCompFinal)
-    st.text(os.path.getsize(outputPdf))
-    if index != 4:
-        outputPdf = rotatePdf(outputPdf, index)  
-    sizeTwo = os.path.getsize(outputPdf)/1024
-    sizeTwoStr = f'{round(sizeTwo, 2)}Kb'
-    rateSize = round((1 - sizeTwo/sizeOne)*100, 2) 
-    st.text(rateSize)
-    with open(outputPdf, "rb") as pdf_file:
-        PDFbyte = pdf_file.read()
-    colInfo, colDown = st.columns([4, 2])
-    colInfo.success(f'Compressão bem-sucedida: variação de {rateSize}%, começando com {sizeOneStr} e terminando com {sizeTwoStr}!')
-    colDown.download_button(label='Download_pdf', 
-                       data=PDFbyte,
-                       file_name=outputPdf,
-                       mime='application/octet-stream', 
-                       icon=":material/download:") 
     
 def extractImgs(filePdf):
     docPdf = pymupdf.open(filePdf)
@@ -195,7 +91,7 @@ def rotatePdf(filePdf, index):
     docPdf.close()
     return output
     
-def savePdf(outputBase, contPartes, writer):
+def saveAllPdf(outputBase, contPartes, writer):
     outputPdf = f"{outputBase}{contPartes + 1}.pdf"
     with open(outputPdf, "wb") as outputFile:
         writer.write(outputFile)
@@ -221,13 +117,13 @@ def divideBySize(inputPdf, sizeMax, outputBase):
                 writer.write(g)
             sizeActual = os.path.getsize(nameTeste)/(1024**2)
             if sizeActual >= sizeMax:
-                outputPdf = savePdf(outputBase, contPartes, writer)
+                outputPdf = saveAllPdf(outputBase, contPartes, writer)
                 filesCutSave.append(outputPdf)
                 writer = PdfWriter()
                 sizeActual = 0
                 contPartes += 1
         if len(writer.pages) > 0:
-            outputPdf = savePdf(outputBase, contPartes, writer)
+            outputPdf = saveAllPdf(outputBase, contPartes, writer)
             filesCutSave.append(outputPdf)
     except Exception as e:
         st.error(f"Ocorreu um erro: {e} - página {i+1}", icon='🛑')
@@ -244,7 +140,32 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     if index != 4:
         outputPdf = rotatePdf(outputPdf, index) 
     docPdf.close()
-    return outputPdf    
+    return outputPdf   
+
+def addWatermark(inputPdf, valMark):
+    doc = pymupdf.open(inputPdf)
+    for page_num in range(doc.page_count):
+        page = doc[page_num]
+        page_rect = page.rect
+        x = page_rect.width/6.5
+        y = page_rect.height * 0.95
+        page.insert_text(
+            (x, y),  
+            valMark,  
+            fontsize=25,
+            color=(0.7, 0.7, 0.4),  
+            rotate=0,  
+            fill_opacity=0.3,
+            stroke_opacity=0.3
+        )
+    doc.save(inputPdf, incremental=True, encryption=0)
+    doc.close()
+    return inputPdf
+
+def selPdfMark(docPdf, numPgOne, numPgTwo, namePdf, index, valMark):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    pdfMark = addWatermark(outputPdf, valMark)
+    downPdfUnique(pdfMark)            
     
 def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
@@ -305,6 +226,9 @@ def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     docPdf.close()
     if index != 4:
         outputPdf = rotatePdf(outputPdf, index)       
+    downPdfUnique(outputPdf) 
+                       
+def downPdfUnique(outputPdf):
     with open(outputPdf, "rb") as pdf_file:
         PDFbyte = pdf_file.read()
     st.download_button(label='Download_pdf', 
@@ -334,6 +258,45 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
             filesRead.append(outputPdf)
             newPdf.close()
     downloadExt(filesRead)
+
+def exibeInfo(docPdf):
+    @st.dialog(' ')
+    def config():
+        nPgs = docPdf.page_count
+        size = uploadPdf.size
+        typFile = uploadPdf.type
+        dirty = docPdf.is_dirty
+        pdfYes = docPdf.is_pdf
+        close = docPdf.is_closed
+        formPdf = docPdf.is_form_pdf
+        encry = docPdf.is_encrypted
+        pdfMeta = docPdf.metadata
+        #st.write(pdfMeta)
+        dictKeys = {'creator': 'criador', 'producer': '🔴 responsável', 'creationDate': 'dia de criação', 
+                    'modDate': 'dia de modificação', 'title': 'título', 'author': 'autor', 'format': 'formato',
+                    'subject': 'assunto', 'keywords': 'palavras-chave', 'encryption': 'criptografia'}
+        keys = [key for key in list(dictKeys.keys())]
+        for key in keys:
+            valueKey = dictKeys[key]
+            metaKey = pdfMeta[key]
+            try:
+                if metaKey.strip() != '':
+                    infoStr = f'{dictKeys[key]}: {metaKey}'
+            except:
+                infoStr = f'{metaKey}\n'
+            st.markdown(infoStr)
+        
+        
+        #st.write(os.path.getsize(filePdf))
+        #st.markdown(f'🔴 **Número de acessos a módulos/submódulos do app**: {info[infoKeys[0]]}')
+        #st.markdown(f'📅 **Data de início da sessão**: {dateFullLang(info[infoKeys[1]])}')
+        #st.markdown(f'⏳ **Tempo de uso deste app**: {tempus} segundo(s).')
+        #st.markdown(f"📐 **Clique(s) no botão :blue[Cálculo]**: {calcK}.")
+        #st.markdown(f"👉 **Clique(s) no botão :blue[Arquivos]**: {fileK}.")
+        #st.markdown(f"👓 **Clique(s) no botão :blue[Acesso]**: {accessK}.")
+        #st.markdown(f"#️⃣ **Clique(s) no botão :blue[Feriados]**: {holidayK}.")
+        #st.markdown(f"📕 **Clique(s) no botão :blue[Limpeza]**: {clearK}.")
+    config()
                 
 @st.dialog(' ')
 def config(str):
@@ -368,17 +331,18 @@ def main():
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
             valMxSize = round(uploadPdf.size/(1024**2), 2)
-            colPgOne, colPgTwo, colSlider, colSize, colComp = st.columns(5)
+            colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([1.5, 1.5, 2.3, 1.5, 3.2])
             numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
             numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
                                              min_value=1, max_value=valMx)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
-                                                 key=listKeys[2], value=dictKeys[listKeys[2]])     
+                                                 key=listKeys[2])    
             valPgSize = colSize.number_input(label='Tamanho para divisão (Mb)', key=listKeys[3], 
-                                             value=dictKeys[listKeys[3]], step=dictKeys[listKeys[3]],  
+                                             min_value=dictKeys[listKeys[3]], step=dictKeys[listKeys[3]],  
                                              max_value=valMxSize)
-            valPgComp = colComp.selectbox(label='Nível de Compressão', options=valComps, key=listKeys[4])
+            valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
+                                           value=dictKeys[listKeys[4]])
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
             buttPgAct = colButtAct.button(label='Corte/páginas', key=keysButts[0], 
                                           use_container_width=True, icon=":material/cut:")
@@ -390,17 +354,17 @@ def main():
                                           use_container_width=True, icon=":material/delete:")
             buttPgClear = colButtClear.button(label='Limpeza', key=keysButts[4], 
                                               use_container_width=True, icon=":material/square:")
-            colButtUrl, colButtImg, colButtSize, colButtComp, colButtOCR = st.columns(5)
+            colButtUrl, colButtImg, colButtSize, colButtMark, colButtInfo = st.columns(5)
             buttPdfUrl = colButtUrl.button(label='URLs', key=keysButts[5], 
                                            use_container_width=True, icon=":material/link:")
             buttPdfImg = colButtImg.button(label='Imagens', key=keysButts[6], 
                                            use_container_width=True, icon=":material/image:")
             buttPdfSize = colButtSize.button(label='Corte/tamanho', key=keysButts[7], 
                                            use_container_width=True, icon=":material/docs:")
-            buttPdfComp = colButtComp.button(label='Compressão', key=keysButts[8], 
-                                             use_container_width=True, icon=":material/docs:")
-            buttPdfOCR =  colButtOCR.button(label='OCR', key=keysButts[9], 
-                                           use_container_width=True, icon=":material/docs:")
+            buttPdfMark = colButtMark.button(label='Marcação', key=keysButts[8], 
+                                             use_container_width=True, icon=":material/approval:")
+            buttPdfInfo =  colButtInfo.button(label='Informações', key=keysButts[9], 
+                                           use_container_width=True, icon=":material/info:")
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -430,35 +394,36 @@ def main():
             if buttPdfSize:
                 with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
                     selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
-            if buttPdfComp:
-                pass
-                with st.spinner(f'Comprimindo {exprPre} com nível de compressão {valPgComp}.'):
-                    compressPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgComp)
-            if buttPdfOCR:
-                pass
-                #with st.spinner(f'Aplicando OCR sobre {exprPre} em pedaços de {valPgSize}Mb!'):
-                    #selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
-            if buttPgClear:
-                iniFinally(1)                
+            if buttPdfMark:
+                if valPgMark.strip() == '':
+                    valPgMark = nameApp 
+                with st.spinner(f"Carimbando {exprPre} com a marca d'água {valPgMark}."):
+                    selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
+            if buttPdfInfo:
+                exibeInfo(docPdf)
+            if buttPgClear:                
+                iniFinally(1)  
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
     global keysButts, valAngles, valComps
     global countPg
-    global namesTeste
+    global namesTeste, nameApp 
+    nameApp = 'Ferramentas/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    valComps = ['mínimo', 'regular', 'bom', 'muito bom', 'ótimo', 'radical']    
+    #valComps = ['mínimo', 'regular', 'bom', 'muito bom', 'ótimo', 'radical']    
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
-                'pgAngle': valAngles[4], 
+                'pgAngle': valAngles[0], 
                 'pgSize': 0.05, 
-                'pgComp': valComps[0]}
+                'pgMark': ''}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
                  'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttOCR']
     countPg = []
     namesTeste = []
-    st.set_page_config(page_title='Ferramentas de tratamento de PDF',  page_icon=":material/files:", 
+    dirBin = r'C:\Users\ACER\Documents\bin'
+    st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
     iniFinally(0)
