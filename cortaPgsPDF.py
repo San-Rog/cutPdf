@@ -111,7 +111,7 @@ def downloadExt(files, namePdf, numPgOne, numPgTwo, obj):
     if nFiles > 0:
         mensResult(1, len(files), 'zip', fileTmp, fileZip)
     else:
-        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem {obj} extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
+        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem {obj} extraível(is) no intervalo de páginas {numPgOne}-{numPgTwo}!'
         config(strEmpty)
 
 def rotatePdf(filePdf, index):
