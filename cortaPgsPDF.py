@@ -2,6 +2,7 @@ import pymupdf
 import streamlit as st
 import zipfile
 import os
+import time
 import numpy as np
 import pandas as pd
 import random
@@ -45,6 +46,11 @@ def extractUrls(filePdf):
     return text
     
 def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
+    opt = st.session_state[listKeys[5]]
+    if opt == 0:
+        crt = optionsSel[3]
+    else:
+        crt = optionsSel[opt]    
     colMens, colDown = st.columns([8, 2]) 
     if value == 1:
         if modelButt == 'zip': 
@@ -55,7 +61,8 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
                                             mime='application/zip', 
                                             icon=":material/download:", 
                                             use_container_width=True)
-        colMens.success(f'Gerado o zipado :blue[**{fileFinal}**] com ***{nFiles}*** arquivo(s). Clique no botão ao lado 👉.', icon='✔️') 
+        colMens.success(f'Gerado o zipado :blue[**{fileFinal}**] com ***{nFiles}*** arquivo(s) (:red[**{crt}**]). Clique no botão ao lado 👉.', 
+                        icon='✔️') 
     elif value == 0:
         colDown.download_button(label='Download', 
                            data=fileTmp,
@@ -63,7 +70,8 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
                            mime='application/octet-stream', 
                            icon=":material/download:", 
                            use_container_width=True)
-        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**]. Clique no botão ao lado 👉.', icon='✔️') 
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
+                        icon='✔️') 
     elif value == 2:
         colDown.download_button(label='Download',
                            data=fileTmp,
@@ -71,7 +79,8 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
                            mime="text/csv", 
                            icon=":material/download:", 
                            use_container_width=True)
-        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**]. Clique no botão ao lado 👉.', icon='✔️')
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
+                        icon='✔️')
     
 def extractImgs(filePdf):
     docPdf = pymupdf.open(filePdf)
@@ -228,13 +237,7 @@ def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
         outputTxt = f'{namePdf}_{numPgOne}_{numPgTwo}_urls.txt'
         strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem URL extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
     if len(text.strip()) > 0:
-        mensResult(2, 1, 'txt', text, outputTxt)
-        #colResult, colDow = st.columns([10, 2])
-        #st.download_button(label=strLabel,
-        #                   data=text,
-        #                   file_name=outputTxt,
-        #                   mime="text/csv", 
-        #                   icon=":material/download:")
+        mensResult(2, 1, 'txt', text, outputTxt)        
     else:
         config(strEmpty)    
                                           
@@ -242,13 +245,16 @@ def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     numPgOne -= 1
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
+    listPgs = seqPages(numPgOne, numPgTwo)
     if mode == 0:
         outputPdf = f'{name}_sel_{numPgOne + 1}_{numPgTwo}{ext}'
-        listSel = [pg for pg in range(numPgOne, numPgTwo)]
+        listSel = [pg for pg in range(numPgOne, numPgTwo) if pg in listPgs]
     else:
         numPages = inputPdf.page_count
         outputPdf = f'{name}_del_{numPgOne + 1}_{numPgTwo}{ext}'
         listSel = [pg for pg in range(numPages) if pg not in range(numPgOne, numPgTwo)]
+        listPlus = [pg for pg in range(numPgOne, numPgTwo) if pg not in listPgs]
+        listSel = listPlus + listSel
     docPdf.select(listSel)
     docPdf.save(outputPdf)
     docPdf.close()
@@ -322,7 +328,17 @@ def exibeInfo(docPdf):
                 
 @st.dialog(' ')
 def config(str):
-    st.text(str)           
+    st.text(str)  
+    
+@st.dialog('Critérios')
+def windowAdd(numPgOne, numPgTwo):
+    selModel = st.selectbox(label=f'Páginas a considerar no intervalo de :blue[**{numPgOne}**] a :blue[**{numPgTwo}**]', 
+                            options=optionsSel, index=st.session_state[listKeys[5]])
+    if selModel:
+        del st.session_state[listKeys[5]]
+        st.session_state[listKeys[5]] = optionsSel.index(selModel)
+    if st.button('retornar'):
+        st.rerun()
         
 def iniFinally(mode):
     if mode == 0:
@@ -340,6 +356,30 @@ def iniFinally(mode):
             pass  
         iniFinally(0)
         st.rerun()
+        
+def seqPages(numPgOne, numPgTwo):
+    valNum = st.session_state[listKeys[5]] 
+    listPgs = [pg for pg in range(numPgOne, numPgTwo)]
+    match valNum:
+        case 1:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%2==0]
+        case 2:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%2==1]
+        case 3:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo)]
+        case 4:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%3==0]
+        case 5:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%4==0]
+        case 6:
+           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%5==0]
+        case 7:
+           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%10==0]
+        case 8:
+           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%15==0] 
+        case 9:
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%20==0]
+    return listPgs            
 
 def main():
     global uploadPdf
@@ -355,7 +395,9 @@ def main():
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
             valMxSize = round(uploadPdf.size/(1024**2), 2)
-            colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([1.5, 1.5, 2.3, 1.5, 3.2])
+            colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([0.4, 1.35, 1.35, 2.3, 1.5, 3.2], 
+                                                                                vertical_alignment='bottom')
+            buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:")
             numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
             numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
@@ -397,52 +439,85 @@ def main():
                 numPgFinal = numPgOne 
             indexAng = valAngles.index(valPgAngle)
             exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo} do arquivo \n{pdfName}'
+            if buttPgs:
+                windowAdd(numPgOne, numPgTwo)
             if buttPgAct:  
-                with st.spinner(f'Dividindo {exprPre}!'):
-                    extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
+                try:
+                    with st.spinner(f'Dividindo {exprPre}!'):
+                        extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
+                except:
+                    config(f'😢 Divisão fracassada!\n🔴 arquivo {namePdf}, intervalo de páginas {numPgOne}-{numPgTwo}!')                    
             if buttPgTxt: 
-                with st.spinner(f'Extraindo texto d{exprPre}!'):
-                    selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                try:
+                    with st.spinner(f'Extraindo texto d{exprPre}!'):
+                        selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                except:
+                     config(f'😢 Extração de texto fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
             if buttPdfUrl:
-                with st.spinner(f'Extraindo links/URLs d{exprPre}!'):
-                    sufix[0] = 'urls'
-                    selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                try:
+                    with st.spinner(f'Extraindo links/URLs d{exprPre}!'):
+                        sufix[0] = 'urls'
+                        selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                except:
+                     config(f'😢 Extração de link fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfImg: 
-                with st.spinner(f'Extraindo imagens d{exprPre}!'):
-                    sufix[0] = 'imgs'
-                    selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2, indexAng)
+                try:                        
+                    with st.spinner(f'Extraindo imagens d{exprPre}!'):
+                        sufix[0] = 'imgs'
+                        selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2, indexAng)
+                except:
+                    config(f'😢 Extração de imagens fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
             if buttPgSel:
-                with st.spinner(f'Criando arquivo com {exprPre}!'):
-                    selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                try:
+                    with st.spinner(f'Criando arquivo com {exprPre}!'):
+                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                except:
+                    config(f'😢 Seleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
             if buttPgDel: 
-                with st.spinner(f'Criando arquivo com deleção d{exprPre}!'):
-                    selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                try:
+                    with st.spinner(f'Criando arquivo com deleção d{exprPre}!'):
+                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                except:
+                    config(f'😢 Deleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfSize:
-                with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
-                    selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
+                try:
+                    with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
+                        selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
+                except:
+                    config(f'😢 Divisão em pedaços fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfMark:
-                if valPgMark.strip() == '':
-                    valPgMark = nameApp 
-                with st.spinner(f"Carimbando {exprPre} com a marca d'água {valPgMark}."):
-                    selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
+                try:
+                    if valPgMark.strip() == '':
+                        valPgMark = nameApp 
+                    with st.spinner(f"Carimbando {exprPre} com a marca d'água {valPgMark}."):
+                        selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
+                except:
+                    config(f'😢 Marcação de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfInfo:
-                exibeInfo(docPdf)
-            if buttPgClear:                
+                try:
+                    exibeInfo(docPdf)
+                except:
+                    config(f'😢 Exibição fracassada!\n🔴 arquivo {pdfName}!')
+            if buttPgClear: 
+                del st.session_state[listKeys[5]]
+                st.session_state[listKeys[5]] = 0
                 iniFinally(1)  
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
     global keysButts, valAngles, valComps
-    global countPg
+    global countPg, optionsSel
     global namesTeste, nameApp 
-    nameApp = 'Ferramentas/PDF'
+    nameApp = 'Tools/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    #valComps = ['mínimo', 'regular', 'bom', 'muito bom', 'ótimo', 'radical']    
+    optionsSel = ['', 'pares', 'não pares', 'todos', 'de 3 em 3', 'de 4 em 4', 'de 5 em 5', 'de 10 em 10', 'de 15 em 15', 
+                  'de 20 em 20'] 
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
                 'pgAngle': valAngles[0], 
                 'pgSize': 0.05, 
-                'pgMark': ''}
+                'pgMark': '', 
+                'selModelExtra': 0}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
                  'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttOCR']
