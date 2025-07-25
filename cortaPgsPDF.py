@@ -111,7 +111,7 @@ def downloadExt(files, namePdf, numPgOne, numPgTwo, obj):
     if nFiles > 0:
         mensResult(1, len(files), 'zip', fileTmp, fileZip)
     else:
-        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem objeto extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
+        strEmpty = f'😢 Extração fracassada!\n🔴 arquivo {namePdf} \nsem {obj} extraível no intervalo de páginas {numPgOne}-{numPgTwo}!'
         config(strEmpty)
 
 def rotatePdf(filePdf, index):
@@ -395,16 +395,16 @@ def main():
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
             valMxSize = round(uploadPdf.size/(1024**2), 2)
-            colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([0.4, 1.35, 1.35, 2.3, 1.5, 3.2], 
+            colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([0.4, 1.35, 1.35, 2.3, 1.6, 3.1], 
                                                                                 vertical_alignment='bottom')
             buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:")
-            numPgOne = colPgOne.number_input(label='Página inicial', key=listKeys[0], 
+            numPgOne = colPgOne.number_input(label='Página inicial  (:red[**1**])', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
-            numPgTwo = colPgTwo.number_input(label='Página final', key=listKeys[1], 
+            numPgTwo = colPgTwo.number_input(label=f'Página final  (:red[**{valMx}**])', key=listKeys[1], 
                                              min_value=1, max_value=valMx)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
                                                  key=listKeys[2])    
-            valPgSize = colSize.number_input(label='Tamanho para divisão (Mb)', key=listKeys[3], 
+            valPgSize = colSize.number_input(label='Tamanho para divisão (:red[**MB**])', key=listKeys[3], 
                                              min_value=dictKeys[listKeys[3]], step=dictKeys[listKeys[3]],  
                                              max_value=valMxSize)
             valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
