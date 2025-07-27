@@ -1,9 +1,9 @@
 import pymupdf
-import xlsxwriter
 import streamlit as st
 import zipfile
 import os
 import time
+import xlsxwriter
 import numpy as np
 import pandas as pd
 import random
@@ -66,20 +66,28 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
                         icon='✔️') 
     elif value == 0:
         colDown.download_button(label='Download', 
-                           data=fileTmp,
-                           file_name=fileFinal,
-                           mime='application/octet-stream', 
-                           icon=":material/download:", 
-                           use_container_width=True)
+                                data=fileTmp,
+                                file_name=fileFinal,
+                                mime='application/octet-stream', 
+                                icon=":material/download:", 
+                                use_container_width=True)
         colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
                         icon='✔️') 
     elif value == 2:
         colDown.download_button(label='Download',
-                           data=fileTmp,
-                           file_name=fileFinal,
-                           mime="text/csv", 
-                           icon=":material/download:", 
-                           use_container_width=True)
+                                data=fileTmp,
+                                file_name=fileFinal,
+                                mime="text/csv", 
+                                icon=":material/download:", 
+                                use_container_width=True)
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
+                        icon='✔️')
+    elif value == 3:
+        colDown.download_button(label='Download',
+                                data=fileTmp,
+                                file_name=fileFinal,
+                                mime='application/octet-stream', 
+                                use_container_width=True)
         colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
                         icon='✔️')
     
@@ -219,11 +227,38 @@ def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
     outputBase = f'{os.path.splitext(inputPdf)[0]}_divisão_{sizeMaxStr}_Mb__parte_'
     filesCutSave = divideBySize(inputPdf, sizeMax, outputBase)
     downloadExt(filesCutSave, namePdf, numPgOne, numPgTwo, 'pedaços')
-        
+
+@st.cache_data
+def extractTables(filePdf):
+    docPdf = pymupdf.open(filePdf)
+    AllTable = []
+    for page in docPdf:
+        tabs = page.find_tables()
+        for t, tab in enumerate(tabs):
+            listaTable = tab.extract()
+            for lista in listaTable:
+                AllTable.append(lista)
+    return AllTable
+    
 def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     filesImg = extractImgs(outputPdf)
     downloadExt(filesImg, namePdf, numPgOne, numPgTwo, 'imagens')
+    
+def selTablesPgs(docPdf, numPgOne, numPgTwo, namePdf, index):
+    name, ext = os.path.splitext(namePdf)
+    newName = f'{name}_{numPgOne}_{numPgTwo}.xlsx'
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    allTables = extractTables(outputPdf)
+    fileFinal = newName
+    workbook = xlsxwriter.Workbook(fileFinal)
+    worksheet = workbook.add_worksheet('aba_dados')
+    for rowNum, rowData in enumerate(allTables):
+        worksheet.write_row(rowNum, 0, rowData)
+    workbook.close()
+    with open(fileFinal, "rb") as file:
+        byFinal = file.read()
+    mensResult(3, 0, 'xlsx', byFinal, fileFinal)
     
 def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
@@ -431,7 +466,10 @@ def main():
             buttPdfMark = colButtMark.button(label='Marcação', key=keysButts[8], 
                                              use_container_width=True, icon=":material/approval:")
             buttPdfInfo =  colButtInfo.button(label='Informações', key=keysButts[9], 
-                                           use_container_width=True, icon=":material/info:")
+                                              use_container_width=True, icon=":material/info:")
+            colTxtTable, colButtA, colButtB, colButtC, colButtC = st.columns(5)
+            buttTxtTable = colTxtTable.button(label='Texto/tabela', key=keysButts[10], 
+                                             use_container_width=True, icon=":material/table:")
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -502,7 +540,13 @@ def main():
             if buttPgClear: 
                 del st.session_state[listKeys[5]]
                 st.session_state[listKeys[5]] = 0
-                iniFinally(1)  
+                iniFinally(1) 
+            if buttTxtTable:
+                try:
+                    with st.spinner(f'Extraindo tabela d{exprPre}!'):
+                        selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
+                except Exception as error:
+                    st.write(error)
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
@@ -516,12 +560,13 @@ if __name__ == '__main__':
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
                 'pgAngle': valAngles[0], 
-                'pgSize': 0.05, 
+                'pgSize': 0.01, 
                 'pgMark': '', 
                 'selModelExtra': 0}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
-                 'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttOCR']
+                 'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttInfo', 
+                 'buttTxtTab']
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
