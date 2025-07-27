@@ -546,7 +546,7 @@ def main():
                     with st.spinner(f'Extraindo tabela d{exprPre}!'):
                         selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
                 except Exception as error:
-                    st.write(error)
+                    config(f'😢 Extração de tableas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
