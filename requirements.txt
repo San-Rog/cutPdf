@@ -1,4 +1,4 @@
 PyMuPDF==1.26.3
 streamlit==1.47.0
 PyPDF2==3.0.1
-xlsxwriter
+xlsxwriter==3.2.3
