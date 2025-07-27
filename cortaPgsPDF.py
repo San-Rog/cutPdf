@@ -1,4 +1,5 @@
 import pymupdf
+import xlsxwriter
 import streamlit as st
 import zipfile
 import os
