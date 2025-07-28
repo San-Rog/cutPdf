@@ -91,6 +91,14 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
                                 use_container_width=True)
         colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
                         icon='✔️')
+    elif value == 4:
+        colDown.download_button(label='Download',
+                                data=fileTmp,
+                                file_name=fileFinal,
+                                 mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+                                use_container_width=True)
+        colMens.success(f'Gerado o arquivo :blue[**{fileFinal}**] (:red[**{crt}**]). Clique no botão ao lado 👉.', 
+                        icon='✔️')
     
 def extractImgs(filePdf):
     docPdf = pymupdf.open(filePdf)
@@ -272,12 +280,31 @@ def imagesConvert(filePdf):
         fileImg = f'imagem_{pg + 1}.png'
         pix.save(fileImg)
         listImgs.append(fileImg)
-    return listImgs    
+    return listImgs  
+
+@st.cache_data 
+def docxConvert(filePdf, numPgOne, numPgTwo):
+    name = os.path.splitext(filePdf)[0]
+    fileDocx = f'{name}_{numPgOne}_{numPgTwo}.docx'
+    try:
+        cv = Converter(filePdf)
+        cv.convert(fileDocx, start=0, end=None)
+        cv.close()
+    except: 
+        pass
+    return fileDocx
     
 def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     listImgs = imagesConvert(outputPdf)
     downloadExt(listImgs, namePdf, numPgOne, numPgTwo, 'pdf_img')
+    
+def selPdfToDocx(docPdf, numPgOne, numPgTwo, namePdf, index): 
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    fileDocx = docxConvert(outputPdf, numPgOne, numPgTwo)
+    with open(fileDocx, "rb") as file:
+        byFinal = file.read()
+    mensResult(4, 0, 'docx', byFinal, fileDocx)
    
 def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
@@ -583,6 +610,13 @@ def main():
                 except Exception as error: 
                     st.write(error)
                     config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttToWord:
+                try:
+                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                        selPdfToDocx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)    
+                except Exception as error:
+                    st.write(error)
+                    config(f'😢 Conversão de PDF em docx fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
