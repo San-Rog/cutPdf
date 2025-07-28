@@ -110,7 +110,7 @@ def extractImgs(filePdf):
 
 def downloadExt(files, namePdf, numPgOne, numPgTwo, obj):
     fileTmp = f'{nameFile()}_tempFile.zip'
-    fileZip = f'namePdf_{numPgOne}_{numPgTwo}_{nameFile()}.zip'
+    fileZip = f'{namePdf}_{numPgOne}_{numPgTwo}_{nameFile()}.zip'
     for file in files:
         with open(file, "rb") as extFile:
            PDFbyte = extFile.read()
@@ -259,7 +259,25 @@ def selTablesPgs(docPdf, numPgOne, numPgTwo, namePdf, index):
     with open(fileFinal, "rb") as file:
         byFinal = file.read()
     mensResult(3, 0, 'xlsx', byFinal, fileFinal)
+
+@st.cache_data   
+def imagesConvert(filePdf):
+    docPdf = pymupdf.open(filePdf)
+    nPages = len(docPdf)
+    listImgs = []
+    for pg in range(nPages):
+        page = docPdf.load_page(pg)
+        pix = page.get_pixmap()
+        fileImg = f'imagem_{pg + 1}.png'
+        pix.save(fileImg)
+        listImgs.append(fileImg)
+    return listImgs    
     
+def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    listImgs = imagesConvert(outputPdf)
+    downloadExt(listImgs, namePdf, numPgOne, numPgTwo, 'pdf_img')
+   
 def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
     if mode == 0:
@@ -431,6 +449,8 @@ def main():
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
             valMxSize = round(uploadPdf.size/(1024**2), 2)
+            if valMxSize < dictKeys[listKeys[3]]:
+                dictKeys[listKeys[3]] = valMxSize
             colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([0.4, 1.35, 1.35, 2.3, 1.6, 3.1], 
                                                                                 vertical_alignment='bottom')
             buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:")
@@ -444,7 +464,7 @@ def main():
                                              min_value=dictKeys[listKeys[3]], step=dictKeys[listKeys[3]],  
                                              max_value=valMxSize)
             valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
-                                           value=dictKeys[listKeys[4]])
+                                           value=dictKeys[listKeys[4]], placeholder=nameApp)
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
             buttPgAct = colButtAct.button(label='Corte/páginas', key=keysButts[0], 
                                           use_container_width=True, icon=":material/cut:")
@@ -467,9 +487,17 @@ def main():
                                              use_container_width=True, icon=":material/approval:")
             buttPdfInfo =  colButtInfo.button(label='Informações', key=keysButts[9], 
                                               use_container_width=True, icon=":material/info:")
-            colTxtTable, colButtA, colButtB, colButtC, colButtC = st.columns(5)
+            colTxtTable, colToTable, colToImg, colToPower, colCode = st.columns(5)
             buttTxtTable = colTxtTable.button(label='Texto/tabela', key=keysButts[10], 
                                              use_container_width=True, icon=":material/table:")
+            buttToWord = colToTable.button(label='Docx', key=keysButts[11], 
+                                           use_container_width=True, icon=":material/transform:")
+            buttToImg = colToImg.button(label='Imagem', key=keysButts[12], 
+                                        use_container_width=True, icon=":material/modeling:")
+            buttToPower = colToPower.button(label='Pptx', key=keysButts[13], 
+                                            use_container_width=True, icon=":material/cycle:")   
+            buttQrcode =  colCode.button(label='Qrcode', key=keysButts[14], 
+                                         use_container_width=True, icon=":material/qr_code_2:")                                   
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -546,14 +574,21 @@ def main():
                     with st.spinner(f'Extraindo tabela d{exprPre}!'):
                         selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
                 except Exception as error:
-                    config(f'😢 Extração de tableas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                    config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttToImg:
+                try:
+                    with st.spinner(f'Convertendo em imagem PDF d{exprPre}!'):
+                        selPdfToImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
+                except Exception as error: 
+                    st.write(error)
+                    config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
         
 if __name__ == '__main__':
     global dictKeys, listKeys 
     global keysButts, valAngles, valComps
     global countPg, optionsSel
     global namesTeste, nameApp 
-    nameApp = 'Tools/PDF'
+    nameApp = 'Ferramentas/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
     optionsSel = ['', 'pares', 'não pares', 'todos', 'de 3 em 3', 'de 4 em 4', 'de 5 em 5', 'de 10 em 10', 'de 15 em 15', 
                   'de 20 em 20'] 
@@ -565,8 +600,8 @@ if __name__ == '__main__':
                 'selModelExtra': 0}
     listKeys = list(dictKeys.keys())
     keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
-                 'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttInfo', 
-                 'buttTxtTab']
+                'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttInfo', 
+                'buttTxtTab', 'buttToWord', 'buttToImg', 'buttToPower', 'buttQrcode']
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
