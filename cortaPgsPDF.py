@@ -10,6 +10,7 @@ import random
 import subprocess
 import datetime
 from PyPDF2 import PdfReader, PdfWriter
+from pdf2docx import Converter
     
 @st.cache_data   
 def nameFile():
