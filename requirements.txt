@@ -3,3 +3,4 @@ streamlit==1.47.0
 PyPDF2==3.0.1
 xlsxwriter==3.2.3
 pdf2docx
+pptx
