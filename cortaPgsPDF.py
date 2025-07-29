@@ -3,14 +3,20 @@ import streamlit as st
 import zipfile
 import os
 import time
+import textwrap
 import xlsxwriter
 import numpy as np
 import pandas as pd
 import random
+from segno import helpers
 import subprocess
 import datetime
 from PyPDF2 import PdfReader, PdfWriter
 from pdf2docx import Converter
+from pptx import Presentation
+from pptx.util import Pt
+from pptx.util import Inches
+from pptx.enum.text import PP_ALIGN
     
 @st.cache_data   
 def nameFile():
@@ -182,7 +188,7 @@ def divideBySize(inputPdf, sizeMax, outputBase):
         st.error(f"Ocorreu um erro: {e} - página {i+1}", icon='🛑')
     return filesCutSave    
 
-def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
+def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, rotate):
     numPgOne -= 1    
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
@@ -190,7 +196,7 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index):
     listSel = [pg for pg in range(numPgOne, numPgTwo)]
     docPdf.select(listSel)
     docPdf.save(outputPdf)
-    if index != 4:
+    if rotate:
         outputPdf = rotatePdf(outputPdf, index) 
     docPdf.close()
     return outputPdf   
@@ -216,12 +222,12 @@ def addWatermark(inputPdf, valMark):
     return inputPdf
 
 def selPdfMark(docPdf, numPgOne, numPgTwo, namePdf, index, valMark):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     pdfMark = addWatermark(outputPdf, valMark)
     downPdfUnique(pdfMark, numPgOne, numPgTwo, namePdf)           
     
 def selPgsSize(docPdf, numPgOne, numPgTwo, namePdf, index, sizeMax):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     inputPdf = outputPdf
     sizeMaxStr = str(sizeMax).replace('.', '_')
     sizeSplit = sizeMaxStr.split('_')
@@ -250,14 +256,14 @@ def extractTables(filePdf):
     return AllTable
     
 def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
     filesImg = extractImgs(outputPdf)
     downloadExt(filesImg, namePdf, numPgOne, numPgTwo, 'imagens')
     
 def selTablesPgs(docPdf, numPgOne, numPgTwo, namePdf, index):
     name, ext = os.path.splitext(namePdf)
     newName = f'{name}_{numPgOne}_{numPgTwo}.xlsx'
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
     allTables = extractTables(outputPdf)
     fileFinal = newName
     workbook = xlsxwriter.Workbook(fileFinal)
@@ -283,9 +289,9 @@ def imagesConvert(filePdf):
     return listImgs  
 
 @st.cache_data 
-def docxConvert(filePdf, numPgOne, numPgTwo):
+def docxConvert(filePdf):
     name = os.path.splitext(filePdf)[0]
-    fileDocx = f'{name}_{numPgOne}_{numPgTwo}.docx'
+    fileDocx = f'{name}.docx'
     try:
         cv = Converter(filePdf)
         cv.convert(fileDocx, start=0, end=None)
@@ -293,21 +299,122 @@ def docxConvert(filePdf, numPgOne, numPgTwo):
     except: 
         pass
     return fileDocx
+ 
+@st.cache_data 
+def ppTxConvert(filePdf):
+    docPdf = pymupdf.open(filePdf)
+    baseName = os.path.basename(filePdf)
+    name, ext = os.path.splitext(baseName)
+    newName = f'{name}.pptx'
+    dictAllTexts = {}
+    for pg, page in enumerate(docPdf):
+        nPg = pg + 1
+        text = page.get_text()
+        dictAllTexts.setdefault(nPg, '')
+        dictAllTexts[nPg] += f'{text}\n'
+    wrapper = textwrap.TextWrapper(width=75)
+    p = Presentation()
+    contPg = 0
+    for dctAll, texts in dictAllTexts.items():
+        textSplit = [txt.strip() for txt in texts.split('\n') if len(txt.strip()) != 0]
+        textAdd = ''
+        contSeg = 0 
+        for tx, text in enumerate(textSplit):
+            if tx%14 == 0 and tx != 0:
+                contSeg += 1
+                s = p.slides.add_slide(p.slide_layouts[5])
+                titlePara = s.shapes.title.text_frame.paragraphs[0]
+                titlePara.font.name = "Times New Roman"
+                titlePara.font.size = Pt(18)
+                titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
+                txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
+                txt_frame = txt_box.text_frame
+                n = txt_frame.add_paragraph()
+                string = wrapper.fill(text=textAdd)
+                n.text = string
+                n.alignment = PP_ALIGN.JUSTIFY
+                textAdd = ''
+                textAdd += text + '\n'
+            else:
+                textAdd += text + '\n'
+        s = p.slides.add_slide(p.slide_layouts[5])
+        titlePara = s.shapes.title.text_frame.paragraphs[0]
+        titlePara.font.name = "Times New Roman"
+        titlePara.font.size = Pt(18)
+        titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
+        txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
+        txt_frame = txt_box.text_frame
+        n = txt_frame.add_paragraph()
+        string = wrapper.fill(text=textAdd)
+        n.text = string
+        n.alignment = PP_ALIGN.JUSTIFY
+    p.save(newName)
+    return newName
+
+@st.cache_data   
+def createImgQrCode():
+    fileImg = 'myContact.png'
+    valuesQrcode = []
+    for k, key in enumerate(qrCodeKeys):
+        valueState = st.session_state[key]
+        if type(valueState) == tuple:
+            valueState = valueState[0]
+        if len(valueState.strip()) == 0:
+            valuesQrcode.append(valuesReserve[k])
+        else:
+            valuesQrcode.append(valueState)    
+    qrcode = helpers.make_mecard(name=valuesQrcode[0], 
+                                 phone=valuesQrcode[1], 
+                                 email=valuesQrcode[2])
+    qrcode.save(fileImg, scale=1)
+    return fileImg    
     
 def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     listImgs = imagesConvert(outputPdf)
     downloadExt(listImgs, namePdf, numPgOne, numPgTwo, 'pdf_img')
     
 def selPdfToDocx(docPdf, numPgOne, numPgTwo, namePdf, index): 
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
-    fileDocx = docxConvert(outputPdf, numPgOne, numPgTwo)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
+    fileDocx = docxConvert(outputPdf)
     with open(fileDocx, "rb") as file:
         byFinal = file.read()
     mensResult(4, 0, 'docx', byFinal, fileDocx)
-   
+    
+def selPdfToPPtx(docPdf, numPgOne, numPgTwo, namePdf, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
+    filePptx = ppTxConvert(outputPdf)
+    with open(filePptx, "rb") as file:
+        byFinal = file.read()
+    mensResult(4, 0, 'pptx', byFinal, filePptx)
+    
+def selPdfToQrcode(docPdf, numPgOne, numPgTwo, namePdf, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
+    fileImg = createImgQrCode()
+    filePdf = insertImgPdf(outputPdf, fileImg)
+    with open(filePdf, "rb") as file:
+        PDFbyte = file.read()
+    mensResult(0, 1, 'pdf', PDFbyte, filePdf)    
+
+def insertImgPdf(filePdf, imgFile):
+    baseName = os.path.basename(filePdf)
+    name, ext = os.path.splitext(baseName)
+    newPdf = f'{name}_img.pdf'
+    headY = 720
+    docPdf = pymupdf.open(filePdf)
+    for pg in range(len(docPdf)):
+        page = docPdf.load_page(pg)
+        rect = page.rect  
+        img = pymupdf.open(imgFile)
+        img_rect = img.load_page(0).rect
+        x0 = (rect.width - img_rect.width) / 13  
+        y0 = rect.height - headY / 11            
+        page.insert_image((x0, y0, x0 + img_rect.width, y0 + img_rect.height), filename=imgFile)             
+    docPdf.save(newPdf)
+    return newPdf    
+    
 def selTxtUrlPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index)
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
     if mode == 0:
         text = extractText(outputPdf)
         strLabel = "Download_text"
@@ -407,6 +514,22 @@ def exibeInfo(docPdf):
                     metaKey = trace
             st.markdown(f'{dictKeys[key]}: {metaKey}')
     config()
+    
+def exibeQrCode():
+    @st.dialog('Dados')
+    def config():
+        nameUser = st.text_input(label='Nome', key=qrCodeKeys[0], placeholder=valuesReserve[0], 
+                                      value='')
+        phoneUser = st.text_input(label='Telefone', key=qrCodeKeys[1], placeholder=valuesReserve[1], value=''), 
+        emailUser = st.text_input(label='Email', key=qrCodeKeys[2], placeholder=valuesReserve[2], value='')
+        if st.button('retornar'):
+            for key in qrCodeKeys:
+                del st.session_state[key]
+            st.session_state[qrCodeKeys[0]] = nameUser
+            st.session_state[qrCodeKeys[1]] = phoneUser
+            st.session_state[qrCodeKeys[2]] = emailUser
+            st.rerun()
+    config()
                 
 @st.dialog(' ')
 def config(str):
@@ -421,7 +544,7 @@ def windowAdd(numPgOne, numPgTwo):
         st.session_state[listKeys[5]] = optionsSel.index(selModel)
     if st.button('retornar'):
         st.rerun()
-        
+       
 def iniFinally(mode):
     if mode == 0:
         for key in listKeys:
@@ -479,9 +602,9 @@ def main():
             valMxSize = round(uploadPdf.size/(1024**2), 2)
             if valMxSize < dictKeys[listKeys[3]]:
                 dictKeys[listKeys[3]] = valMxSize
-            colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark = st.columns([0.4, 1.35, 1.35, 2.3, 1.6, 3.1], 
+            colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark, colPerson = st.columns([0.4, 1.35, 1.35, 2.3, 1.6, 2.7, 0.4], 
                                                                                 vertical_alignment='bottom')
-            buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:")
+            buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:", key='sett')
             numPgOne = colPgOne.number_input(label='Página inicial  (:red[**1**])', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
             numPgTwo = colPgTwo.number_input(label=f'Página final  (:red[**{valMx}**])', key=listKeys[1], 
@@ -493,6 +616,7 @@ def main():
                                              max_value=valMxSize)
             valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
                                            value=dictKeys[listKeys[4]], placeholder=nameApp)
+            buttPerson = colPerson.button(label='', use_container_width=True, icon=":material/person_edit:", key='person') 
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
             buttPgAct = colButtAct.button(label='Corte/páginas', key=keysButts[0], 
                                           use_container_width=True, icon=":material/cut:")
@@ -541,7 +665,9 @@ def main():
                     with st.spinner(f'Dividindo {exprPre}!'):
                         extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
                 except:
-                    config(f'😢 Divisão fracassada!\n🔴 arquivo {namePdf}, intervalo de páginas {numPgOne}-{numPgTwo}!')                    
+                    config(f'😢 Divisão fracassada!\n🔴 arquivo {namePdf}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
+            if buttPerson:
+                exibeQrCode()
             if buttPgTxt: 
                 try:
                     with st.spinner(f'Extraindo texto d{exprPre}!'):
@@ -601,28 +727,39 @@ def main():
                 try:
                     with st.spinner(f'Extraindo tabela d{exprPre}!'):
                         selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
-                except Exception as error:
+                except:
                     config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToImg:
                 try:
                     with st.spinner(f'Convertendo em imagem PDF d{exprPre}!'):
                         selPdfToImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
-                except Exception as error: 
-                    st.write(error)
+                except: 
                     config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToWord:
                 try:
                     with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
                         selPdfToDocx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)    
-                except Exception as error:
-                    st.write(error)
+                except:
                     config(f'😢 Conversão de PDF em docx fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
-        
+            if buttToPower:
+                try:
+                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                        selPdfToPPtx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                      
+                except:
+                    config(f'😢 Conversão de PDF em Power Point fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttQrcode:
+                try:
+                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                        selPdfToQrcode(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                        
+                except:
+                    config(f'😢 Inserção de QRcode fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')    
+                        
 if __name__ == '__main__':
     global dictKeys, listKeys 
     global keysButts, valAngles, valComps
     global countPg, optionsSel
     global namesTeste, nameApp 
+    global qrCodeKeys, valuesReserve
     nameApp = 'Ferramentas/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
     optionsSel = ['', 'pares', 'não pares', 'todos', 'de 3 em 3', 'de 4 em 4', 'de 5 em 5', 'de 10 em 10', 'de 15 em 15', 
@@ -640,6 +777,11 @@ if __name__ == '__main__':
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
+    valuesReserve = ['xxxxxxxx xxxxxxx', '+55xxxxxxxxxxx', 'xxxxxxxx@xxxxx.xxxx']
+    qrCodeKeys = ['one', 'two', 'three']
+    for key in qrCodeKeys:
+        if key not in st.session_state:
+            st.session_state[key] = ''
     st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
