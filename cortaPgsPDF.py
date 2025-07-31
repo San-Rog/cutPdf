@@ -1,5 +1,6 @@
 import pymupdf
 import streamlit as st
+import streamlit.components.v1 as components
 import zipfile
 import os
 import time
@@ -504,7 +505,7 @@ def exibeInfo(docPdf):
                     'modDate': '🕰️ **dia de modificação**', 'title': '#️⃣  **título**', 'author': '📕 **autor**', 'format': '⏹️ **formato**',
                     'subject': '🖊️ **assunto**', 'keywords': '#️⃣  **palavras-chave**', 'encryption': '🔑 **criptografia**'}
         keys = [key for key in list(dictKeys.keys())]
-        for key in keys:
+        for k, key in enumerate(keys):
             valueKey = dictKeys[key]
             metaKey = pdfMeta[key]
             if metaKey is None:
@@ -512,8 +513,25 @@ def exibeInfo(docPdf):
             else:
                 if len(metaKey.strip()) == 0:
                     metaKey = trace
+            if k in [2, 3]:
+                metaKey = configDate(metaKey)                
             st.markdown(f'{dictKeys[key]}: {metaKey}')
     config()
+    
+def configDate(datePdf):
+    try:
+        dateSplit = datePdf.split(':')
+        dateStr = dateSplit[1][:14]
+        year = dateStr[:4]
+        month = dateStr[4:6]
+        day = dateStr[6:8]
+        hour = dateStr[8:10]
+        minute = dateStr[10:12]
+        second = dateStr[12:]
+        dateStr = f'{day}/{month}/{year}, {hour}h{minute}min{second}s'
+        return dateStr
+    except:
+        return datePdf
     
 def exibeQrCode():
     @st.dialog('Dados')
@@ -522,7 +540,8 @@ def exibeQrCode():
                                       value='')
         phoneUser = st.text_input(label='Telefone', key=qrCodeKeys[1], placeholder=valuesReserve[1], value=''), 
         emailUser = st.text_input(label='Email', key=qrCodeKeys[2], placeholder=valuesReserve[2], value='')
-        if st.button('retornar'):
+        buttReturn = st.button('retornar')
+        if buttReturn:
             for key in qrCodeKeys:
                 del st.session_state[key]
             st.session_state[qrCodeKeys[0]] = nameUser
@@ -604,7 +623,9 @@ def main():
                 dictKeys[listKeys[3]] = valMxSize
             colPgs, colPgOne, colPgTwo, colSlider, colSize, colMark, colPerson = st.columns([0.4, 1.35, 1.35, 2.3, 1.6, 2.7, 0.4], 
                                                                                 vertical_alignment='bottom')
-            buttPgs = colPgs.button(label='', use_container_width=True, icon=":material/settings:", key='sett')
+            buttToPages = colPgs.button(label=dictButts[keysButts[-2]][0], use_container_width=True, 
+                                        icon=dictButts[keysButts[-2]][1], key=keysButts[-2], 
+                                        help=dictButts[keysButts[-2]][-1])
             numPgOne = colPgOne.number_input(label='Página inicial  (:red[**1**])', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
             numPgTwo = colPgTwo.number_input(label=f'Página final  (:red[**{valMx}**])', key=listKeys[1], 
@@ -616,40 +637,57 @@ def main():
                                              max_value=valMxSize)
             valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
                                            value=dictKeys[listKeys[4]], placeholder=nameApp)
-            buttPerson = colPerson.button(label='', use_container_width=True, icon=":material/person_edit:", key='person') 
+            buttPerson = colPerson.button(label=dictButts[keysButts[-1]][0], use_container_width=True, 
+                                          icon=dictButts[keysButts[-1]][1], key=keysButts[-1], 
+                                          help=dictButts[keysButts[-1]][-1]) 
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
-            buttPgAct = colButtAct.button(label='Corte/páginas', key=keysButts[0], 
-                                          use_container_width=True, icon=":material/cut:")
-            buttPgTxt = colButtTxt.button(label='Texto', key=keysButts[1], 
-                                          use_container_width=True, icon=":material/description:")
-            buttPgSel = colButtSel.button(label='Seleção', key=keysButts[2], 
-                                          use_container_width=True, icon=":material/list:")
-            buttPgDel = colButtDel.button(label='Deleção', key=keysButts[3], 
-                                          use_container_width=True, icon=":material/delete:")
-            buttPgClear = colButtClear.button(label='Limpeza', key=keysButts[4], 
-                                              use_container_width=True, icon=":material/square:")
+            buttPgAct = colButtAct.button(label=dictButts[keysButts[0]][0], key=keysButts[0], 
+                                          use_container_width=True, icon=dictButts[keysButts[0]][1], 
+                                          help=dictButts[keysButts[0]][-1])
+            buttPgTxt = colButtTxt.button(label=dictButts[keysButts[1]][0], key=keysButts[1], 
+                                          use_container_width=True, icon=dictButts[keysButts[1]][1], 
+                                          help=dictButts[keysButts[1]][-1])
+            buttPgSel = colButtSel.button(label=dictButts[keysButts[2]][0], key=keysButts[2], 
+                                          use_container_width=True, icon=dictButts[keysButts[2]][1], 
+                                          help=dictButts[keysButts[2]][-1])
+            buttPgDel = colButtDel.button(label=dictButts[keysButts[3]][0], key=keysButts[3], 
+                                          use_container_width=True, icon=dictButts[keysButts[3]][1], 
+                                          help=dictButts[keysButts[3]][-1])
+            buttPgClear = colButtClear.button(label=dictButts[keysButts[4]][0], key=keysButts[4], 
+                                              use_container_width=True, icon=dictButts[keysButts[4]][1], 
+                                              help=dictButts[keysButts[4]][-1])
             colButtUrl, colButtImg, colButtSize, colButtMark, colButtInfo = st.columns(5)
-            buttPdfUrl = colButtUrl.button(label='URLs', key=keysButts[5], 
-                                           use_container_width=True, icon=":material/link:")
-            buttPdfImg = colButtImg.button(label='Imagens', key=keysButts[6], 
-                                           use_container_width=True, icon=":material/image:")
-            buttPdfSize = colButtSize.button(label='Corte/tamanho', key=keysButts[7], 
-                                           use_container_width=True, icon=":material/docs:")
-            buttPdfMark = colButtMark.button(label='Marcação', key=keysButts[8], 
-                                             use_container_width=True, icon=":material/approval:")
-            buttPdfInfo =  colButtInfo.button(label='Informações', key=keysButts[9], 
-                                              use_container_width=True, icon=":material/info:")
+            buttPdfUrl = colButtUrl.button(label=dictButts[keysButts[5]][0], key=keysButts[5], 
+                                           use_container_width=True, icon=dictButts[keysButts[5]][1], 
+                                           help=dictButts[keysButts[5]][-1])
+            buttPdfImg = colButtImg.button(label=dictButts[keysButts[6]][0], key=keysButts[6], 
+                                           use_container_width=True, icon=dictButts[keysButts[6]][1], 
+                                           help=dictButts[keysButts[6]][-1])
+            buttPdfSize = colButtSize.button(label=dictButts[keysButts[7]][0], key=keysButts[7], 
+                                             use_container_width=True, icon=dictButts[keysButts[7]][1], 
+                                             help=dictButts[keysButts[7]][-1])
+            buttPdfMark = colButtMark.button(label=dictButts[keysButts[8]][0], key=keysButts[8], 
+                                             use_container_width=True, icon=dictButts[keysButts[8]][1], 
+                                             help=dictButts[keysButts[8]][-1])
+            buttPdfInfo =  colButtInfo.button(label=dictButts[keysButts[9]][0], key=keysButts[9], 
+                                              use_container_width=True, icon=dictButts[keysButts[9]][1], 
+                                              help=dictButts[keysButts[9]][-1])
             colTxtTable, colToTable, colToImg, colToPower, colCode = st.columns(5)
-            buttTxtTable = colTxtTable.button(label='Texto/tabela', key=keysButts[10], 
-                                             use_container_width=True, icon=":material/table:")
-            buttToWord = colToTable.button(label='Docx', key=keysButts[11], 
-                                           use_container_width=True, icon=":material/transform:")
-            buttToImg = colToImg.button(label='Imagem', key=keysButts[12], 
-                                        use_container_width=True, icon=":material/modeling:")
-            buttToPower = colToPower.button(label='Pptx', key=keysButts[13], 
-                                            use_container_width=True, icon=":material/cycle:")   
-            buttQrcode =  colCode.button(label='Qrcode', key=keysButts[14], 
-                                         use_container_width=True, icon=":material/qr_code_2:")                                   
+            buttTxtTable = colTxtTable.button(label=dictButts[keysButts[10]][0], key=keysButts[10], 
+                                              use_container_width=True, icon=dictButts[keysButts[10]][1], 
+                                              help=dictButts[keysButts[10]][-1])
+            buttToWord = colToTable.button(label=dictButts[keysButts[11]][0], key=keysButts[11], 
+                                           use_container_width=True, icon=dictButts[keysButts[11]][1], 
+                                           help=dictButts[keysButts[11]][-1])
+            buttToImg = colToImg.button(label=dictButts[keysButts[12]][0], key=keysButts[12], 
+                                        use_container_width=True, icon=dictButts[keysButts[12]][1], 
+                                        help=dictButts[keysButts[12]][-1])
+            buttToPower = colToPower.button(label=dictButts[keysButts[13]][0], key=keysButts[13], 
+                                            use_container_width=True, icon=dictButts[keysButts[13]][1], 
+                                            help=dictButts[keysButts[13]][-1])   
+            buttQrcode =  colCode.button(label=dictButts[keysButts[14]][0], key=keysButts[14], 
+                                         use_container_width=True, icon=dictButts[keysButts[14]][1], 
+                                         help=dictButts[keysButts[14]][-1])                                   
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -657,12 +695,13 @@ def main():
                 numPgIni = numPgTwo
                 numPgFinal = numPgOne 
             indexAng = valAngles.index(valPgAngle)
-            exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo} do arquivo \n{pdfName}'
-            if buttPgs:
+            exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo}.'
+            if buttToPages:
                 windowAdd(numPgOne, numPgTwo)
             if buttPgAct:  
                 try:
-                    with st.spinner(f'Dividindo {exprPre}!'):
+                    expr = f'{dictButts[keysButts[0]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         extractPgs(docPdf, numPgIni, numPgFinal, 0, pdfName, indexAng)
                 except:
                     config(f'😢 Divisão fracassada!\n🔴 arquivo {namePdf}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
@@ -670,39 +709,49 @@ def main():
                 exibeQrCode()
             if buttPgTxt: 
                 try:
-                    with st.spinner(f'Extraindo texto d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[1]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
                 except:
-                     config(f'😢 Extração de texto fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
+                     config(f'😢 Extração de texto fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttPgSel:
+                try:
+                    expr = f'{dictButts[keysButts[2]][2]} {pdfName} {exprPre}'
+                    with st.spinner(expr):
+                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
+                except:
+                    config(f'😢 Seleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttPgDel: 
+                try:
+                    expr = f'{dictButts[keysButts[3]][2]} {pdfName} {exprPre}'
+                    with st.spinner(expr):
+                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
+                except:
+                    config(f'😢 Deleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttPgClear: 
+                del st.session_state[listKeys[5]]
+                st.session_state[listKeys[5]] = 0
+                iniFinally(1) 
             if buttPdfUrl:
                 try:
-                    with st.spinner(f'Extraindo links/URLs d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[5]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         sufix[0] = 'urls'
                         selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
                 except:
                      config(f'😢 Extração de link fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfImg: 
-                try:                        
-                    with st.spinner(f'Extraindo imagens d{exprPre}!'):
+                try:     
+                    expr = f'{dictButts[keysButts[6]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         sufix[0] = 'imgs'
                         selImgUrlsPgs(docPdf, numPgOne, numPgTwo, pdfName, 2, indexAng)
                 except:
                     config(f'😢 Extração de imagens fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
-            if buttPgSel:
-                try:
-                    with st.spinner(f'Criando arquivo com {exprPre}!'):
-                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 0, indexAng)
-                except:
-                    config(f'😢 Seleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
-            if buttPgDel: 
-                try:
-                    with st.spinner(f'Criando arquivo com deleção d{exprPre}!'):
-                        selDelPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
-                except:
-                    config(f'😢 Deleção de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfSize:
                 try:
-                    with st.spinner(f'Dividindo {exprPre} em pedaços de {valPgSize}Mb!'):
+                    expr = f'{dictButts[keysButts[7]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selPgsSize(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgSize)
                 except:
                     config(f'😢 Divisão em pedaços fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
@@ -710,7 +759,8 @@ def main():
                 try:
                     if valPgMark.strip() == '':
                         valPgMark = nameApp 
-                    with st.spinner(f"Carimbando {exprPre} com a marca d'água {valPgMark}."):
+                    expr = f'{dictButts[keysButts[8]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
                 except:
                     config(f'😢 Marcação de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
@@ -725,41 +775,47 @@ def main():
                 iniFinally(1) 
             if buttTxtTable:
                 try:
-                    with st.spinner(f'Extraindo tabela d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[10]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
                 except:
                     config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
-            if buttToImg:
-                try:
-                    with st.spinner(f'Convertendo em imagem PDF d{exprPre}!'):
-                        selPdfToImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
-                except: 
-                    config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToWord:
                 try:
-                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[11]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selPdfToDocx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)    
                 except:
                     config(f'😢 Conversão de PDF em docx fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+            if buttToImg:
+                try:
+                    expr = f'{dictButts[keysButts[12]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
+                        selPdfToImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
+                except: 
+                    config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToPower:
                 try:
-                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[13]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selPdfToPPtx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                      
                 except:
                     config(f'😢 Conversão de PDF em Power Point fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttQrcode:
                 try:
-                    with st.spinner(f'Convertendo em Docx PDF d{exprPre}!'):
+                    expr = f'{dictButts[keysButts[14]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
                         selPdfToQrcode(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                        
                 except:
                     config(f'😢 Inserção de QRcode fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')    
                         
 if __name__ == '__main__':
     global dictKeys, listKeys 
-    global keysButts, valAngles, valComps
+    global valAngles, valComps
     global countPg, optionsSel
     global namesTeste, nameApp 
     global qrCodeKeys, valuesReserve
+    global dictButts, keysButts
     nameApp = 'Ferramentas/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
     optionsSel = ['', 'pares', 'não pares', 'todos', 'de 3 em 3', 'de 4 em 4', 'de 5 em 5', 'de 10 em 10', 'de 15 em 15', 
@@ -771,9 +827,25 @@ if __name__ == '__main__':
                 'pgMark': '', 
                 'selModelExtra': 0}
     listKeys = list(dictKeys.keys())
-    keysButts = ['buttAct', 'buttTxt', 'buttSel', 'buttDel', 'buttClear', 
-                'buttUrls', 'buttImgs', 'buttSize', 'buttCompress', 'buttInfo', 
-                'buttTxtTab', 'buttToWord', 'buttToImg', 'buttToPower', 'buttQrcode']
+    dictButts = {'buttActIni': ['Corte/páginas', ':material/cut:', 'Dividindo o arquivo ', 'Secciona o arquivo de acordo com o intervalo de páginas.'], 
+                 'buttTxt': ['Texto', ':material/description:', 'Extraindo texto do arquivo ', 'Extrai texto do arquivo e grava o resultado como txt.'],
+                 'buttSel': ['Seleção', ':material/description:', 'Selecionando do arquivo ', 'Cria novo arquivo pdf com as páginas selecionadas.'], 
+                 'buttDel': ['Deleção', ':material/delete:', 'Deletando do arquivo ', 'Deleta as páginas selecionadas.'], 
+                 'buttClear': ['Limpeza', ':material/square:', 'Limpando os campos da tela.', 'Limpa os campos da tela, exceto o arquivo escolhido.'], 
+                 'buttUrls': ['URLs', ':material/link:', 'Extraindo links/URLs do arquivo ', 'Pesquisa as URLs existentes no arquivo.'], 
+                 'buttImgs': ['Imagens', ':material/image:', 'Extraindo imagens do arquivo', 'Extrai imagens do arquivo do arquivo e grava-as individualmente.'], 
+                 'buttSize': ['Corte/tamanho', ':material/docs:', 'Dividindo por tamanho o arquivo ', 'Secciona o arquivo de acordo com o tamanho escolhido.'], 
+                 'buttMark': ['Marcação', ':material/approval:', 'Marcando o rodapé do arquivo ', 'Insere marca de água nop rodapé do arquivo.'], 
+                 'buttInfo': ['Informações', ':material/info:', 'Coligindo informações sobre o arquivo inteiro.', 'Exibe informações sobre o arquivo inteiro.'], 
+                 'buttTxtTab': ['Texto/tabela', ':material/table:', 'Extraindo tabelas do arquivo ', 'Extrai tabelas existentes no treho selecionado.'], 
+                 'buttToWord': ['Docx', ':material/transform:', 'Convertendo em Word o arquivo ', 'Converte em formato docx as páginas selecionadas do arquivo.'], 
+                 'buttToImg': ['Imagem', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 'Converte em formato jpg as páginas selecionadas.'], 
+                 'buttToPower': ['Pptx', ':material/cycle:', 'Convertendo em slide do PowerPoint o arquivo ', 'Converte em slide do PowerPoint as páginas selecionadas.'], 
+                 'buttQrcode': ['Qrcode', ':material/qr_code_2:', 'Inserindo qrcode no canto inferior direito do arquivo ', 'Insere qrcode no rodapé das páginas selecionadas.'], 
+                 'buttPgs': ['', ':material/settings:', 'Exibindo opções de seleção de páginas do arquivo ', 'Exibe opções especiais de seleção de páginas.'],
+                 'buttToPerson': ['', ':material/person_edit:', 'Abrindo campos a preencher para inserção do qrcode', 'Abre opções para preenchimento do qrcode.']}
+    keysButts = list(dictButts.keys())
+                
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
@@ -781,9 +853,12 @@ if __name__ == '__main__':
     qrCodeKeys = ['one', 'two', 'three']
     for key in qrCodeKeys:
         if key not in st.session_state:
-            st.session_state[key] = ''
+            st.session_state[key] = ''    
     st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
     iniFinally(0)
+    with open('configuration.css') as f:
+        css = f.read()
+    st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
