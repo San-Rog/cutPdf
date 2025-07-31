@@ -855,7 +855,7 @@ if __name__ == '__main__':
         if key not in st.session_state:
             st.session_state[key] = ''    
     st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
-                       layout='center')
+                       layout='centered')
     st.cache_data.clear() 
     iniFinally(0)
     with open('configuration.css') as f:
