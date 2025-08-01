@@ -481,9 +481,10 @@ def extractPgs(docPdf, numPgOne, numPgTwo, mode, namePdf, index):
     downloadExt(filesRead, namePdf, numPgOne, numPgTwo, 'páginas')
 
 def exibeInfo(docPdf):
+    infoDictKeys = {'Metadado': [], 'Informação': []}
     @st.dialog(' ')
     def config():
-        trace= '_'*10
+        trace = '👎'
         nPgs = docPdf.page_count
         size = round(uploadPdf.size/1024, 2)
         if size > 1024:
@@ -499,12 +500,15 @@ def exibeInfo(docPdf):
         formPdf = docPdf.is_form_pdf
         encry = docPdf.is_encrypted
         pdfMeta = docPdf.metadata
-        st.markdown(f'🗄️ **Tamanho**: {size}{unit}') 
-        st.markdown(f'📄️ **Total de páginas**: {nPgs}')
-        dictKeys = {'creator': '💂 **criador**', 'producer': '🔴 **responsável**', 'creationDate': '📅 **dia de criação**', 
-                    'modDate': '🕰️ **dia de modificação**', 'title': '#️⃣  **título**', 'author': '📕 **autor**', 'format': '⏹️ **formato**',
-                    'subject': '🖊️ **assunto**', 'keywords': '#️⃣  **palavras-chave**', 'encryption': '🔑 **criptografia**'}
-        keys = [key for key in list(dictKeys.keys())]
+        infoDictKeys['Metadado'].append('🗄️ tamanho')
+        infoDictKeys['Informação'].append(f'{size}{unit}')
+        infoDictKeys['Metadado'].append('📄️ páginas')
+        infoDictKeys['Informação'].append(nPgs)
+        dictKeys = {'creator': '💂 criador', 'producer': '🔴 responsável', 'creationDate': '📅 dia de criação', 
+                    'modDate': '🕰️ dia de modificação', 'title': '#️⃣  título', 'author': '📕 autor', 'format': '⏹️ formato',
+                    'subject': '🖊️ assunto', 'keywords': '#️⃣  palavras-chave', 'encryption': '🔑 criptografia'}
+        listDictKeys = list(dictKeys.keys())
+        keys = [key for key in listDictKeys]
         for k, key in enumerate(keys):
             valueKey = dictKeys[key]
             metaKey = pdfMeta[key]
@@ -514,8 +518,16 @@ def exibeInfo(docPdf):
                 if len(metaKey.strip()) == 0:
                     metaKey = trace
             if k in [2, 3]:
-                metaKey = configDate(metaKey)                
-            st.markdown(f'{dictKeys[key]}: {metaKey}')
+                metaKey = configDate(metaKey) 
+            #infoDictKeys = {'Metadado': [], 'Informação': []}
+            infoDictKeys['Metadado'].append(dictKeys[key])
+            infoDictKeys['Informação'].append(metaKey)
+        df = pd.DataFrame(infoDictKeys)
+        st.dataframe(data=df, use_container_width=True, hide_index=True, 
+                     column_config={'Metadado': st.column_config.TextColumn(width='medium', 
+                                                                            help=f'Metadados do arquivo'), 
+                                    'Informação': st.column_config.TextColumn(width='large', 
+                                                                            help=f'Valor associado ao metadado')})
     config()
     
 def configDate(datePdf):
@@ -767,7 +779,8 @@ def main():
             if buttPdfInfo:
                 try:
                     exibeInfo(docPdf)
-                except:
+                except Exception as error:
+                    st.text(error)
                     config(f'😢 Exibição fracassada!\n🔴 arquivo {pdfName}!')
             if buttPgClear: 
                 del st.session_state[listKeys[5]]
@@ -858,7 +871,7 @@ if __name__ == '__main__':
                        layout='wide')
     st.cache_data.clear() 
     iniFinally(0)
-    with open('configuration.css') as f:
+    with open(r'C:\Users\ACER\Downloads\configuration.css') as f:
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
