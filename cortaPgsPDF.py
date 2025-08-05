@@ -996,7 +996,7 @@ if __name__ == '__main__':
                  'buttCodify': ['Bloqueio', ':material/text_ad:', 'Bloqueando o arquivo', 
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
                  'buttDeCodify': ['Desbloqueio', ':material/text_ad:', 'Desbloqueando o arquivo', 
-                                  'Cria arquivo desbloqueado com as´páginas selecionadas.']}
+                                  'Cria arquivo desbloqueado com as páginas selecionadas.']}
     keysButts = list(dictButts.keys())
     countPg = []
     namesTeste = []
@@ -1017,3 +1017,4 @@ if __name__ == '__main__':
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
+
