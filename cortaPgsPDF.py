@@ -772,7 +772,7 @@ def main():
             buttQrcode =  colCode.button(label=dictButts[keysButts[14]][0], key=keysButts[14], 
                                          use_container_width=True, icon=dictButts[keysButts[14]][1], 
                                          help=dictButts[keysButts[14]][-1])   
-            colRemImg, colRemWrd, colCodePdf, colDecodePdf, colD = st.columns(5)
+            colRemImg, colRemWrd, colCodePdf, colDecodePdf, colRemoveMark = st.columns(5)
             buttRemoveImg = colRemImg.button(label=dictButts[keysButts[17]][0], key=keysButts[17], 
                                             use_container_width=True, icon=dictButts[keysButts[17]][1], 
                                             help=dictButts[keysButts[17]][-1]) 
@@ -785,6 +785,9 @@ def main():
             buttDecodePdf = colDecodePdf.button(label=dictButts[keysButts[21]][0], key=keysButts[21], 
                                                 use_container_width=True, icon=dictButts[keysButts[21]][1], 
                                                 help=dictButts[keysButts[21]][-1])
+            buttRemoveMark = colRemoveMark.button(label=dictButts[keysButts[22]][0], key=keysButts[22], 
+                                                  use_container_width=True, icon=dictButts[keysButts[22]][1], 
+                                                  help=dictButts[keysButts[22]][-1])                                    
             if numPgTwo >= numPgOne: 
                 numPgIni = numPgOne
                 numPgFinal = numPgTwo
@@ -993,10 +996,12 @@ if __name__ == '__main__':
                                   'Remove o texto das páginas selecionadas.'], 
                  'buttOptWords': ['', ':material/text_ad:', 'Abrindo tela para inserção de senha ou de texto a ser substituído', 
                                   'Abre tela para digitar senha ou texto a ser apagado.'], 
-                 'buttCodify': ['Bloqueio', ':material/text_ad:', 'Bloqueando o arquivo', 
+                 'buttCodify': ['Bloqueio', ':material/lock:', 'Bloqueando o arquivo', 
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
-                 'buttDeCodify': ['Desbloqueio', ':material/text_ad:', 'Desbloqueando o arquivo', 
-                                  'Cria arquivo desbloqueado com as páginas selecionadas.']}
+                 'buttDeCodify': ['Desbloqueio', ':material/lock_open_right:', 'Desbloqueando o arquivo', 
+                                  'Cria arquivo desbloqueado com as´páginas selecionadas.'], 
+                 'buttNoMark': ['Remoção/marcas', ':material/text_ad:', 'Removendo as marcas de água do arquivo', 
+                                "Cria arquivo com as´páginas selecionadas e sem marca d'água."]}
     keysButts = list(dictButts.keys())
     countPg = []
     namesTeste = []
@@ -1017,5 +1022,3 @@ if __name__ == '__main__':
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
-
-
