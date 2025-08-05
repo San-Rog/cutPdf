@@ -1000,7 +1000,7 @@ if __name__ == '__main__':
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
                  'buttDeCodify': ['Desbloqueio', ':material/lock_open_right:', 'Desbloqueando o arquivo', 
                                   'Cria arquivo desbloqueado com as´páginas selecionadas.'], 
-                 'buttNoMark': ['Remoção/marcas', ':material/text_ad:', 'Removendo as marcas de água do arquivo', 
+                 'buttNoMark': ['Exclusão/marcas', ':material/variable_remove:', 'Removendo as marcas de água do arquivo', 
                                 "Cria arquivo com as´páginas selecionadas e sem marca d'água."]}
     keysButts = list(dictButts.keys())
     countPg = []
