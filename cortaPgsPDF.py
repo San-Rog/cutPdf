@@ -970,7 +970,7 @@ if __name__ == '__main__':
                  'buttSize': ['Divisão/tamanho', ':material/docs:', 'Dividindo por tamanho o arquivo ', 
                               'Divide o arquivo de acordo com o tamanho escolhido.'], 
                  'buttMark': ['Marcação', ':material/approval:', 'Marcando o rodapé do arquivo ', 
-                              'Insere marca de água nop rodapé do arquivo.'], 
+                              'Insere marca de água no rodapé do arquivo.'], 
                  'buttInfo': ['Informações', ':material/info:', 'Coligindo informações sobre o arquivo inteiro.', 
                               'Exibe informações sobre o arquivo inteiro.'], 
                  'buttTxtTab': ['Excel', ':material/transform:', 'Extraindo tabelas do arquivo ', 
@@ -1017,4 +1017,5 @@ if __name__ == '__main__':
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
+
 
