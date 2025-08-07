@@ -13,6 +13,7 @@ from segno import helpers
 import subprocess
 import datetime
 from PyPDF2 import PdfReader, PdfWriter
+from pdf_watermark_remover import process_pdf
 from pdf2docx import Converter
 from pptx import Presentation
 from pptx.util import Pt
@@ -402,6 +403,12 @@ def removeAllWords(filePdf):
     docPdf.close()
     return outputPdf
     
+def removeAllMark(filePdf):
+    name, ext = os.path.splitext(filePdf)
+    outputPdf = name + f'_without_mark{ext}'
+    process_pdf(filePdf, outputPdf)
+    return outputPdf
+        
 def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     listImgs = imagesConvert(outputPdf)
@@ -442,6 +449,13 @@ def selPdfRemoveWords(docPdf, numPgOne, numPgTwo, namePdf, index):
     with open(filePdf, "rb") as file:
         PDFbyte = file.read()
     mensResult(0, 1, 'pdf', PDFbyte, filePdf)  
+    
+def selPdfRemoveMark(docPdf, numPgOne, numPgTwo, namePdf, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
+    filePdf = removeAllMark(outputPdf)
+    with open(filePdf, "rb") as file:
+        PDFbyte = file.read()
+    mensResult(0, 1, 'pdf', PDFbyte, filePdf)
 
 def insertImgPdf(filePdf, imgFile):
     baseName = os.path.basename(filePdf)
@@ -866,7 +880,9 @@ def main():
                     config(f'😢 Marcação de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfInfo:
                 try:
-                    exibeInfo(docPdf)
+                    expr = f'{dictButts[keysButts[9]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
+                        exibeInfo(docPdf)
                 except:
                     config(f'😢 Exibição fracassada!\n🔴 arquivo {pdfName}!')
             if buttPgClear: 
@@ -909,7 +925,7 @@ def main():
                 except:
                     config(f'😢 Inserção de QRcode fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')  
             if buttRemoveImg:
-                expr = f'{dictButts[keysButts[-4]][2]} {pdfName} n{exprPre}'
+                expr = f'{dictButts[keysButts[17]][2]} {pdfName} n{exprPre}'
                 try:
                     with st.spinner(expr):
                         selPdfRemoveImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
@@ -928,7 +944,7 @@ def main():
                     if len(textWrite) == 0:
                         config(f'😢 Nenhum texto foi selecionado!\nAbra a tela e digite o texto desejado!') 
                     else:
-                        expr = f'{dictButts[keysButts[-3]][2]} {pdfName} n{exprPre}'
+                        expr = f'{dictButts[keysButts[18]][2]} {pdfName} n{exprPre}'
                         try:
                             with st.spinner(expr):
                                 selPdfRemoveWords(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
@@ -936,6 +952,15 @@ def main():
                             config(f'😢 Deleção de texto fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
                 else:
                     config(f'😢 Nenhum texto foi selecionado!\nAbra a tela e digite o texto desejado!') 
+            if buttRemoveMark:
+                expr = f'{dictButts[keysButts[22]][2]} {pdfName} n{exprPre}'
+                try:
+                    expr = f'{dictButts[keysButts[22]][2]} {pdfName} n{exprPre}'
+                    with st.spinner(expr):
+                        selPdfRemoveMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
+                except Exception as errr:
+                    st.text(errr)
+                    config(f"😢 Remoção de marca d'água fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!")
                         
 if __name__ == '__main__':
     global dictKeys, listKeys 
