@@ -3,6 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import zipfile
 import os
+import io
 import time
 import textwrap
 import xlsxwriter
@@ -402,13 +403,32 @@ def removeAllWords(filePdf):
         docPdf.save(outputPdf) 
     docPdf.close()
     return outputPdf
-    
+
+@st.cache_data   
 def removeAllMark(filePdf):
     name, ext = os.path.splitext(filePdf)
     outputPdf = name + f'_without_mark{ext}'
     process_pdf(filePdf, outputPdf)
     return outputPdf
-        
+
+@st.cache_data   
+def lockAllPages(filePdf):
+    docPdf = pymupdf.open(filePdf)
+    name, ext = os.path.splitext(filePdf)
+    outputPdf = name + f'_lock{ext}'
+    docPdf.save(outputPdf, 
+                encryption=pymupdf.PDF_ENCRYPT_AES_256, 
+                user_pw=st.session_state[keyWord][1])
+    return outputPdf    
+
+def unLockAllPages(docPdf, namePdf):
+    name, ext = os.path.splitext(namePdf)
+    outputPdf = name + f'_unlock{ext}'
+    rc = docPdf.authenticate(st.session_state[keyWord][1])
+    docPdf.save(outputPdf, 
+                encryption=pymupdf.PDF_ENCRYPT_NONE)
+    return outputPdf
+            
 def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     listImgs = imagesConvert(outputPdf)
@@ -453,6 +473,19 @@ def selPdfRemoveWords(docPdf, numPgOne, numPgTwo, namePdf, index):
 def selPdfRemoveMark(docPdf, numPgOne, numPgTwo, namePdf, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
     filePdf = removeAllMark(outputPdf)
+    with open(filePdf, "rb") as file:
+        PDFbyte = file.read()
+    mensResult(0, 1, 'pdf', PDFbyte, filePdf)
+    
+def selPdfLockPdf(docPdf, numPgOne, numPgTwo, namePdf, index):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)    
+    filePdf = lockAllPages(outputPdf)
+    with open(filePdf, "rb") as file:
+        PDFbyte = file.read()
+    mensResult(0, 1, 'pdf', PDFbyte, filePdf)
+    
+def selPdfUnLockPdf(docPdf, numPgOne, numPgTwo, namePdf, index):
+    filePdf = unLockAllPages(docPdf, namePdf)
     with open(filePdf, "rb") as file:
         PDFbyte = file.read()
     mensResult(0, 1, 'pdf', PDFbyte, filePdf)
@@ -625,18 +658,18 @@ def exibeQrCode():
 def exibeWord():
     @st.dialog(' ') 
     def config():
-        words = ['Palavra/frase a excluir do arquivo', 'Senha do arquivo']
+        words = ['Texto a ser excluído.', 'Senha para bloqueio/desbloqueio']
         optWord = st.radio(label='Opções de trabalho', options=words, index=None, horizontal=True)
         if optWord:
             ind = words.index(optWord)
-            if ind == 0:
-                typeInput = 'default'
+            if ind == 1:
+                typeInput = 'password'
                 wordInput = 'Digite a senha para bloquear/desbloquear o arquivo.'
             else:
-                typeInput = 'password'
+                typeInput = 'default'
                 wordInput = 'Digite a palavra a ser deletada. Maiúsculas/minúsculas são ignoradas, mas a acentuação será levada em conta.'
-            optWord = st.text_input(label=f'Digite a {optWord}.', key=keyWord, placeholder='', 
-                                      value='', type=typeInput, help=wordInput)
+            optWord = st.text_input(label=f'Digite a {optWord.lower()}.', key=keyWord[ind], placeholder='', 
+                                    value='', type=typeInput, help=wordInput)
             buttReturn = st.button('retornar')        
             if buttReturn:
                 del st.session_state[keyWord]
@@ -809,7 +842,7 @@ def main():
                 numPgIni = numPgTwo
                 numPgFinal = numPgOne 
             indexAng = valAngles.index(valPgAngle)
-            exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo}.'
+            exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo}.'            
             if buttToPages:
                 windowAdd(numPgOne, numPgTwo)
             if buttPgAct:  
@@ -951,15 +984,49 @@ def main():
                         except:
                             config(f'😢 Deleção de texto fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
                 else:
-                    config(f'😢 Nenhum texto foi selecionado!\nAbra a tela e digite o texto desejado!') 
+                    config('😢 Nenhum texto foi digitado!\nAbra a tela e digite o texto desejado!') 
+            if buttCodePdf or buttDecodePdf:
+                try:
+                    if buttCodePdf:
+                        block = ''
+                    if buttDecodePdf:
+                        block = 'des'
+                    textWrite = st.session_state[keyWord][1].strip()
+                    wordOk = True
+                except:
+                    wordOk = False
+                if wordOk:
+                    if len(textWrite) == 0:
+                        config(f'😢 Nenhuma senha para {block}bloqueio foi informada!\nAbra a tela e digite o texto desejado!') 
+                    else:
+                        try:
+                            if block == '':
+                                try:
+                                    expr = f'{dictButts[keysButts[20]][2]} {pdfName} n{exprPre}'
+                                    with st.spinner(expr):
+                                        selPdfLockPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
+                                except:
+                                    config(f'😢 {operStr} fracassado!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                            else:
+                                try:
+                                    numPgTwo = valMx
+                                    selPdfUnLockPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
+                                except:
+                                    config(f'😢 {operStr} fracassado!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                        except Exception as error:
+                            st.text(error)
+                            oper = f'{block}bloqueio'
+                            operStr = f'{oper.capitalize()}'
+                            config(f'😢 {operStr} fracassado!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                else:
+                    config(f'😢 Nenhuma senha para {block}bloqueio foi informada!\nAbra a tela e digite o texto desejado!')                    
             if buttRemoveMark:
                 expr = f'{dictButts[keysButts[22]][2]} {pdfName} n{exprPre}'
                 try:
                     expr = f'{dictButts[keysButts[22]][2]} {pdfName} n{exprPre}'
                     with st.spinner(expr):
                         selPdfRemoveMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
-                except Exception as errr:
-                    st.text(errr)
+                except:
                     config(f"😢 Remoção de marca d'água fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!")
                         
 if __name__ == '__main__':
@@ -1024,7 +1091,7 @@ if __name__ == '__main__':
                  'buttCodify': ['Bloqueio', ':material/lock:', 'Bloqueando o arquivo', 
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
                  'buttDeCodify': ['Desbloqueio', ':material/lock_open_right:', 'Desbloqueando o arquivo', 
-                                  'Cria arquivo desbloqueado com as´páginas selecionadas.'], 
+                                  'Desbloqueia todas as páginas do arquivo.'], 
                  'buttNoMark': ['Exclusão/marcas', ':material/variable_remove:', 'Removendo as marcas de água do arquivo', 
                                 "Cria arquivo com as´páginas selecionadas e sem marca d'água."]}
     keysButts = list(dictButts.keys())
