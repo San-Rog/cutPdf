@@ -3,6 +3,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import zipfile
 import os
+import re
 import io
 import time
 import textwrap
@@ -20,6 +21,8 @@ from pptx import Presentation
 from pptx.util import Pt
 from pptx.util import Inches
 from pptx.enum.text import PP_ALIGN
+from brutils import is_valid_email
+from brutils import is_valid_phone
     
 @st.cache_data   
 def nameFile():
@@ -637,6 +640,14 @@ def configDate(datePdf):
         return dateStr
     except:
         return datePdf
+
+@st.cache_data 
+def validateEmail(email):
+    return is_valid_email (email)
+
+@st.cache_data  
+def validatePhone(phone):
+    return is_valid_phone(phone)
     
 def exibeQrCode():
     @st.dialog('Dados')
@@ -644,13 +655,22 @@ def exibeQrCode():
         nameUser = st.text_input(label='Nome', key=qrCodeKeys[0], placeholder=valuesReserve[0], 
                                       value='')
         phoneUser = st.text_input(label='Telefone', key=qrCodeKeys[1], placeholder=valuesReserve[1], value=''), 
-        emailUser = st.text_input(label='Email', key=qrCodeKeys[2], placeholder=valuesReserve[2], value='')
+        emailUser = st.text_input(label='E-mail', key=qrCodeKeys[2], placeholder=valuesReserve[2], value='')
+        if len(phoneUser[0].strip()) > 0:
+            if not validatePhone(phoneUser[0]):
+                phoneUser = st.session_state[qrCodeKeys[2]]
+                st.error(f"O telefone '{phoneUser}' não é válido! Tente de novo!")
+                time.sleep(3)
+        if emailUser:
+            if not validateEmail(emailUser):
+                st.error(f"O e-mail '{emailUser}' não é válido! Tente de novo!")
+                time.sleep(3)
         buttReturn = st.button('retornar')
         if buttReturn:
             for key in qrCodeKeys:
                 del st.session_state[key]
             st.session_state[qrCodeKeys[0]] = nameUser
-            st.session_state[qrCodeKeys[1]] = phoneUser
+            st.session_state[qrCodeKeys[1]] = phoneUser[0]
             st.session_state[qrCodeKeys[2]] = emailUser
             st.rerun()
     config()
@@ -658,8 +678,8 @@ def exibeQrCode():
 def exibeWord():
     @st.dialog(' ') 
     def config():
-        words = ['Texto a ser excluído.', 'Senha para bloqueio/desbloqueio']
-        optWord = st.radio(label='Opções de trabalho', options=words, index=None, horizontal=True)
+        words = ['Exclusão', 'Bloqueio/desbloqueio', "Marca d'água"]
+        optWord = st.radio(label='Opções de Texto', options=words, index=None, horizontal=True)
         if optWord:
             ind = words.index(optWord)
             if ind == 1:
@@ -673,7 +693,7 @@ def exibeWord():
             buttReturn = st.button('retornar')        
             if buttReturn:
                 del st.session_state[keyWord]
-                st.session_state[keyWord] = ['', '']
+                st.session_state[keyWord] = ['', '', '']
                 st.session_state[keyWord][ind] = optWord
                 st.rerun()            
     config()
@@ -690,6 +710,34 @@ def windowAdd(numPgOne, numPgTwo):
         del st.session_state[listKeys[5]]
         st.session_state[listKeys[5]] = optionsSel.index(selModel)
     if st.button('retornar'):
+        st.rerun()
+        
+@st.dialog(' ')
+def windowDocsImgs(keys, mode):
+    match mode:
+        case 0:
+            docFormats = ['.csv', '.ods', '.xls', '.xlsx']
+        case 1:
+            docFormats = ['.doc', '.docx', '.odt', '.rtf']
+        case _: 
+            docFormats = ['.ico', '.jpg', '.jpeg', '.png']
+    colSeg, colMark = st.columns([4, 3.5], vertical_alignment="top")
+    segms = colSeg.segmented_control(label='Formatos de saída', options=docFormats, selection_mode='multi', 
+                                 default=None)    
+    nSegms = len(segms)
+    if nSegms > 0:
+        colMark.markdown('')
+        if nSegms == 1:
+            expr = 'formato'
+        else:
+            expr = 'formatos'    
+        colMark.markdown(f'{nSegms} {expr}:\n{segms}')
+    else:
+        colMark.markdown('Nada selecionado!')
+    if st.button('retornar'):
+        del st.session_state[keys]
+        st.session_state[keys] = []
+        st.session_state[keys] = segms
         st.rerun()
        
 def iniFinally(mode):
@@ -738,7 +786,7 @@ def main():
     global valMx
     global sufix
     sufix = ['']
-    with st.container(border=6):
+    with st.container(border=6, key='contOne'):
         uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
                                      type=['pdf'], 
                                      accept_multiple_files=False)
@@ -747,30 +795,35 @@ def main():
             docPdf = pymupdf.open(stream=uploadPdf.read(), filetype="pdf")
             valMx = docPdf.page_count 
             valMxSize = round(uploadPdf.size/(1024**2), 2)
-            #if valMxSize < dictKeys[listKeys[3]]:
-                #dictKeys[listKeys[3]] = valMxSize
-            colPgs, colPgOne, colPgTwo, colSlider, colWords, colSize, colMark, colPerson = st.columns([0.4, 1.35, 1.35, 2.0, 0.4, 1.6, 2.6, 0.4], 
-                                                                                vertical_alignment='bottom')
-            buttToPages = colPgs.button(label=dictButts[keysButts[15]][0], use_container_width=True, 
-                                        icon=dictButts[keysButts[15]][1], key=keysButts[15], 
-                                        help=dictButts[keysButts[15]][-1])
+            colPgOne, colPgTwo, colSize, colSlider = st.columns([1.2, 1.2, 1.4, 1.8], vertical_alignment='bottom')
             numPgOne = colPgOne.number_input(label='Página inicial  (:red[**1**])', key=listKeys[0], 
                                              min_value=1, max_value=valMx)
             numPgTwo = colPgTwo.number_input(label=f'Página final  (:red[**{valMx}**])', key=listKeys[1], 
                                              min_value=1, max_value=valMx)
-            valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
-                                                 key=listKeys[2])    
             valPgSize = colSize.number_input(label='Tamanho para divisão (:red[**MB**])', key=listKeys[3], 
                                              min_value=dictKeys[listKeys[3]], step=dictKeys[listKeys[3]],  
                                              max_value=valMxSize)
-            valPgMark = colMark.text_input(label="Marca d'água", key=listKeys[4], max_chars=50, 
-                                           value=dictKeys[listKeys[4]], placeholder=nameApp)
-            buttPerson = colPerson.button(label=dictButts[keysButts[16]][0], use_container_width=True, 
-                                          icon=dictButts[keysButts[16]][1], key=keysButts[16], 
-                                          help=dictButts[keysButts[16]][-1]) 
+            valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
+                                                 key=listKeys[2])
+            colPgs, colWords, colOptPlans, colOptDocs, colOptImgs, colPerson = st.columns(spec=6)
+            buttToPages = colPgs.button(label=dictButts[keysButts[15]][0], use_container_width=True, 
+                                            icon=dictButts[keysButts[15]][1], key=keysButts[15], 
+                                            help=dictButts[keysButts[15]][-1])
             buttOptWords = colWords.button(label=dictButts[keysButts[19]][0], use_container_width=True, 
-                                          icon=dictButts[keysButts[19]][1], key=keysButts[19], 
-                                          help=dictButts[keysButts[19]][-1])  
+                                               icon=dictButts[keysButts[19]][1], key=keysButts[19], 
+                                               help=dictButts[keysButts[19]][-1]) 
+            buttOptPlans = colOptPlans.button(label=dictButts[keysButts[23]][0], use_container_width=True, 
+                                              icon=dictButts[keysButts[23]][1], key=keysButts[23], 
+                                              help=dictButts[keysButts[23]][-1]) 
+            buttOptDocs = colOptDocs.button(label=dictButts[keysButts[25]][0], use_container_width=True, 
+                                            icon=dictButts[keysButts[25]][1], key=keysButts[25], 
+                                            help=dictButts[keysButts[25]][-1])
+            buttOptImgs = colOptImgs.button(label=dictButts[keysButts[24]][0], use_container_width=True, 
+                                          icon=dictButts[keysButts[24]][1], key=keysButts[24], 
+                                          help=dictButts[keysButts[24]][-1]) 
+            buttPerson = colPerson.button(label=dictButts[keysButts[16]][0], use_container_width=True, 
+                                              icon=dictButts[keysButts[16]][1], key=keysButts[16], 
+                                              help=dictButts[keysButts[16]][-1])
             colButtAct, colButtTxt, colButtSel, colButtDel, colButtClear = st.columns(5)
             buttPgAct = colButtAct.button(label=dictButts[keysButts[0]][0], key=keysButts[0], 
                                           use_container_width=True, icon=dictButts[keysButts[0]][1], 
@@ -845,6 +898,13 @@ def main():
             exprPre = f'o intervalo de páginas {numPgOne} a {numPgTwo}.'            
             if buttToPages:
                 windowAdd(numPgOne, numPgTwo)
+            if buttOptPlans:
+               windowDocsImgs(keyDocs, 0)
+            if buttOptDocs: 
+                windowDocsImgs(keyDocs, 1)  
+            if buttOptImgs:
+                windowDocsImgs(keyImgs, 2)
+            
             if buttPgAct:  
                 try:
                     expr = f'{dictButts[keysButts[0]][2]} {pdfName} n{exprPre}'
@@ -904,11 +964,13 @@ def main():
                     config(f'😢 Divisão em pedaços fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfMark:
                 try:
+                    valPgMark = st.session_state[keyWord][2].strip()
                     if valPgMark.strip() == '':
-                        valPgMark = nameApp 
-                    expr = f'{dictButts[keysButts[8]][2]} {pdfName} n{exprPre}'
-                    with st.spinner(expr):
-                        selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
+                        config("😢 Nenhuma marca d'água foi digitada!\nAbra a tela e digite o texto desejado!") 
+                    else:
+                        expr = f'{dictButts[keysButts[8]][2]} {pdfName} n{exprPre}'
+                        with st.spinner(expr):
+                            selPdfMark(docPdf, numPgOne, numPgTwo, pdfName, indexAng, valPgMark)
                 except:
                     config(f'😢 Marcação de páginas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfInfo:
@@ -930,6 +992,7 @@ def main():
                 except:
                     config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToWord:
+                st.write(st.session_state[keyDocs])
                 try:
                     expr = f'{dictButts[keysButts[11]][2]} {pdfName} n{exprPre}'
                     with st.spinner(expr):
@@ -1068,44 +1131,56 @@ if __name__ == '__main__':
                               'Insere marca de água no rodapé do arquivo.'], 
                  'buttInfo': ['Informações', ':material/info:', 'Coligindo informações sobre o arquivo inteiro.', 
                               'Exibe informações sobre o arquivo inteiro.'], 
-                 'buttTxtTab': ['Excel', ':material/transform:', 'Extraindo tabelas do arquivo ', 
-                                'Extrai tabelas existentes no treho selecionado.'], 
-                 'buttToWord': ['Docx', ':material/transform:', 'Convertendo em Word o arquivo ', 
+                 'buttTxtTab': ['Pdf/planilha', ':material/transform:', 'Abrindo janela com formatos de tabela ', 
+                                'Abre janela com formatos de tabela para as páginas selecionadas.'], 
+                 'buttToWord': ['Pdf/documento', ':material/transform:', 'Convertendo em Word o arquivo ', 
                                 'Converte em formato docx as páginas selecionadas do arquivo.'], 
-                 'buttToImg': ['Imagem', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 
+                 'buttToImg': ['Pdf/imagem', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 
                                'Converte em formato jpg as páginas selecionadas.'], 
-                 'buttToPower': ['Pptx', ':material/cycle:', 'Convertendo em slide do PowerPoint o arquivo ', 
+                 'buttToPower': ['Pdf/slide', ':material/cycle:', 'Convertendo em slide do PowerPoint o arquivo ', 
                                  'Converte em slide do PowerPoint as páginas selecionadas.'], 
                  'buttQrcode': ['Qrcode', ':material/qr_code_2:', 'Inserindo qrcode no canto inferior direito do arquivo ', 
                                 'Insere qrcode no rodapé das páginas selecionadas.'], 
-                 'buttPgs': ['', ':material/settings:', 'Exibindo opções de seleção de páginas do arquivo ', 
-                             'Exibe opções especiais de seleção de páginas.'],
-                 'buttToPerson': ['', ':material/person_edit:', 'Abrindo campos a preencher para inserção do qrcode', 
+                 'buttPgs': ['Opções/página', ':material/settings:', 'Exibindo opções de seleção de páginas do arquivo ', 
+                             'Exibe opções de seleção de páginas.'],
+                 'buttToPerson': ['Dados/qrcode', ':material/person_edit:', 'Abrindo campos a preencher para inserção do qrcode', 
                                   'Abre opções para preenchimento do qrcode.'], 
                  'buttRemImage': ['Exclusão/imagens', ':material/folder_off:', 'Removendo todas as imagens do arquivo', 
                                   'Remove todas as imagens das páginas selecionadas.'], 
                  'buttRemWords': ['Exclusão/texto', ':material/clear_all:', 'Removendo todas as ocorrências do texto', 
                                   'Remove o texto das páginas selecionadas.'], 
-                 'buttOptWords': ['', ':material/text_ad:', 'Abrindo tela para inserção de senha ou de texto a ser substituído', 
+                 'buttOptWords': ['Opções/texto', ':material/text_ad:', 'Abrindo tela para inserção de senha ou de texto a ser substituído', 
                                   'Abre tela para digitar senha ou texto a ser apagado.'], 
                  'buttCodify': ['Bloqueio', ':material/lock:', 'Bloqueando o arquivo', 
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
                  'buttDeCodify': ['Desbloqueio', ':material/lock_open_right:', 'Desbloqueando o arquivo', 
                                   'Desbloqueia todas as páginas do arquivo.'], 
                  'buttNoMark': ['Exclusão/marcas', ':material/variable_remove:', 'Removendo as marcas de água do arquivo', 
-                                "Cria arquivo com as´páginas selecionadas e sem marca d'água."]}
+                                "Cria arquivo com as´páginas selecionadas e sem marca d'água."], 
+                 'buttTypeImgs': ['Opções/planilha', ':material/variable_remove:', 'Abrindo janela para escolha de opções de imagem.', 
+                                  'Abre janela para escolha de tipos de imagem.'], 
+                 'buttOptImgs': ['Opções/imagem', ':material/modeling:', 'Abre janela para seleção de opções de imagem ', 
+                                 'Abre janela com formato de imagem para as páginas selecioandas.'], 
+                 'buttOptDocs': ['Opções/doc', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 
+                                 'Abre janela com formato de documento para as páginas selecioandas.']}
     keysButts = list(dictButts.keys())
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
-    valuesReserve = ['xxxxxxxx xxxxxxx', '+55xxxxxxxxxxx', 'xxxxxxxx@xxxxx.xxxx']
+    valuesReserve = ['xxxxxxxx xxxxxxx', 'xxxxxxxxxxx', 'xxxxxxxx@xxxxx.xxxx']
     qrCodeKeys = ['one', 'two', 'three']
-    keyWord = ['', '']
+    keyWord = ['', '', '']
+    keyDocs = []
+    keyImgs = []
     for key in qrCodeKeys:
         if key not in st.session_state:
             st.session_state[key] = ''  
     if keyWord not in st.session_state:
-        st.session_state[keyWord] = ['', ''] 
+        st.session_state[keyWord] = ['', '', '']
+    if keyDocs not in st.session_state:
+        st.session_state[keyDocs] = []
+    if keyImgs not in st.session_state:
+        st.session_state[keyImgs] = []
     st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
