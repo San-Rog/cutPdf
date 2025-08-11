@@ -51,10 +51,13 @@ def extractUrls(filePdf):
     for p, page in enumerate(docPdf):
         links = page.get_links()
         for link in links:
-            nameUrl = link["uri"]
-            fromUrl = link["from"]
-            newText = f'{nameUrl}; coordenadas: {fromUrl}\n'
-            allLinks.append(newText)
+            try:
+                nameUrl = link["uri"]
+                fromUrl = link["from"]
+                newText = f'{nameUrl}; coordenadas: {fromUrl}\n'
+                allLinks.append(newText)
+            except:
+                pass
     text = ''.join(allLinks) 
     docPdf.close()
     return text
@@ -536,7 +539,6 @@ def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
     listPgs = seqPages(numPgOne, numPgTwo)
-    st.write(listPgs)
     if mode == 0:
         outputPdf = f'{name}_sel_{numPgOne + 1}_{numPgTwo}{ext}'
         listSel = [pg for pg in range(numPgOne, numPgTwo) if pg in listPgs]
@@ -957,7 +959,7 @@ def main():
                         sufix[0] = 'urls'
                         selTxtUrlPgs(docPdf, numPgOne, numPgTwo, pdfName, 1, indexAng)
                 except:
-                     config(f'😢 Extração de link fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                    config(f'😢 Extração de link fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfImg: 
                 try:     
                     expr = f'{dictButts[keysButts[6]][2]} {pdfName} n{exprPre}'
@@ -1004,8 +1006,7 @@ def main():
                         expr = f'{dictButts[keysButts[10]][2]} {pdfName} n{exprPre}'
                         with st.spinner(expr):
                             selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, False, 'pdf_table')          
-                    except Exception as error:
-                        st.text(error)
+                    except:
                         config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToWord:
                 nDocs = len(st.session_state[keyDocs])
@@ -1027,8 +1028,7 @@ def main():
                         expr = f'{dictButts[keysButts[12]][2]} {pdfName} n{exprPre}'
                         with st.spinner(expr):
                             selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, True, 'pdf_img')
-                    except Exception as error: 
-                        st.text(error)
+                    except: 
                         config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToPower:
                 try:
@@ -1050,8 +1050,7 @@ def main():
                 try:
                     with st.spinner(expr):
                         selPdfRemoveImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
-                except Exception as error:
-                    st.write(error)
+                except:
                     config(f'😢 Remoção de imagens fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!') 
             if buttOptWords:
                 exibeWord()
@@ -1101,8 +1100,7 @@ def main():
                                     selPdfUnLockPdf(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
                                 except:
                                     config(f'😢 {operStr} fracassado!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
-                        except Exception as error:
-                            st.text(error)
+                        except:
                             oper = f'{block}bloqueio'
                             operStr = f'{oper.capitalize()}'
                             config(f'😢 {operStr} fracassado!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
