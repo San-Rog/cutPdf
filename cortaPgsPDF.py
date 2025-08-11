@@ -64,7 +64,7 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
     if opt == 0:
         crt = optionsSel[3]
     else:
-        crt = optionsSel[opt]    
+        crt = f'{optionsSel[opt]}{st.session_state[listKeys[6]]}'   
     colMens, colDown = st.columns([8, 2]) 
     if value == 1:
         if modelButt == 'zip': 
@@ -266,96 +266,107 @@ def selImgUrlsPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     filesImg = extractImgs(outputPdf)
     downloadExt(filesImg, namePdf, numPgOne, numPgTwo, 'imagens')
     
-def selTablesPgs(docPdf, numPgOne, numPgTwo, namePdf, index):
-    name, ext = os.path.splitext(namePdf)
-    newName = f'{name}_{numPgOne}_{numPgTwo}.xlsx'
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
-    allTables = extractTables(outputPdf)
-    fileFinal = newName
-    workbook = xlsxwriter.Workbook(fileFinal)
-    worksheet = workbook.add_worksheet('aba_dados')
-    for rowNum, rowData in enumerate(allTables):
-        worksheet.write_row(rowNum, 0, rowData)
-    workbook.close()
-    with open(fileFinal, "rb") as file:
-        byFinal = file.read()
-    mensResult(3, 0, 'xlsx', byFinal, fileFinal)
-
 @st.cache_data   
 def imagesConvert(filePdf):
     docPdf = pymupdf.open(filePdf)
     nPages = len(docPdf)
     listImgs = []
-    for pg in range(nPages):
-        page = docPdf.load_page(pg)
-        pix = page.get_pixmap()
-        fileImg = f'imagem_{pg + 1}.png'
-        pix.save(fileImg)
-        listImgs.append(fileImg)
+    imgs = st.session_state[keyImgs] 
+    for img in imgs:
+        for pg in range(nPages):
+            page = docPdf.load_page(pg)
+            pix = page.get_pixmap()
+            fileImg = f'imagem_{pg + 1}{img}'
+            pix.save(fileImg)
+            listImgs.append(fileImg)
     return listImgs  
 
 @st.cache_data 
 def docxConvert(filePdf):
     name = os.path.splitext(filePdf)[0]
-    fileDocx = f'{name}.docx'
-    try:
-        cv = Converter(filePdf)
-        cv.convert(fileDocx, start=0, end=None)
-        cv.close()
-    except: 
-        pass
-    return fileDocx
- 
+    docs = st.session_state[keyDocs]
+    listDocs = []
+    for doc in docs:
+        fileDoc = f'{name}{doc}'
+        try:
+            cv = Converter(filePdf)
+            cv.convert(fileDoc, start=0, end=None)
+            cv.close()
+            listDocs.append(fileDoc)
+        except: 
+            pass
+    return listDocs
+
+@st.cache_data 
+def tableConvert(filePdf):   
+    name = os.path.splitext(filePdf)[0]
+    tables = st.session_state[keyDocs]
+    listTables = []
+    for table in tables:
+        fileTable = f'{name}{table}'
+        allTables = extractTables(filePdf)
+        workbook = xlsxwriter.Workbook(fileTable)
+        worksheet = workbook.add_worksheet('aba_dados')
+        for rowNum, rowData in enumerate(allTables):
+            worksheet.write_row(rowNum, 0, rowData)
+        workbook.close()
+        listTables.append(fileTable)    
+    return listTables
+     
 @st.cache_data 
 def ppTxConvert(filePdf):
     docPdf = pymupdf.open(filePdf)
     baseName = os.path.basename(filePdf)
     name, ext = os.path.splitext(baseName)
-    newName = f'{name}.pptx'
-    dictAllTexts = {}
-    for pg, page in enumerate(docPdf):
-        nPg = pg + 1
-        text = page.get_text()
-        dictAllTexts.setdefault(nPg, '')
-        dictAllTexts[nPg] += f'{text}\n'
-    wrapper = textwrap.TextWrapper(width=75)
-    p = Presentation()
-    contPg = 0
-    for dctAll, texts in dictAllTexts.items():
-        textSplit = [txt.strip() for txt in texts.split('\n') if len(txt.strip()) != 0]
-        textAdd = ''
-        contSeg = 0 
-        for tx, text in enumerate(textSplit):
-            if tx%14 == 0 and tx != 0:
-                contSeg += 1
-                s = p.slides.add_slide(p.slide_layouts[5])
-                titlePara = s.shapes.title.text_frame.paragraphs[0]
-                titlePara.font.name = "Times New Roman"
-                titlePara.font.size = Pt(18)
-                titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
-                txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
-                txt_frame = txt_box.text_frame
-                n = txt_frame.add_paragraph()
-                string = wrapper.fill(text=textAdd)
-                n.text = string
-                n.alignment = PP_ALIGN.JUSTIFY
-                textAdd = ''
-                textAdd += text + '\n'
-            else:
-                textAdd += text + '\n'
-        s = p.slides.add_slide(p.slide_layouts[5])
-        titlePara = s.shapes.title.text_frame.paragraphs[0]
-        titlePara.font.name = "Times New Roman"
-        titlePara.font.size = Pt(18)
-        titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
-        txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
-        txt_frame = txt_box.text_frame
-        n = txt_frame.add_paragraph()
-        string = wrapper.fill(text=textAdd)
-        n.text = string
-        n.alignment = PP_ALIGN.JUSTIFY
-    p.save(newName)
-    return newName
+    slides = st.session_state[keySlides]
+    listSlides = []
+    for slide in slides:
+        fileSlide = f'{name}{slide}'
+        dictAllTexts = {}
+        for pg, page in enumerate(docPdf):
+            nPg = pg + 1
+            text = page.get_text()
+            dictAllTexts.setdefault(nPg, '')
+            dictAllTexts[nPg] += f'{text}\n'
+        wrapper = textwrap.TextWrapper(width=75)
+        p = Presentation()
+        contPg = 0
+        for dctAll, texts in dictAllTexts.items():
+            textSplit = [txt.strip() for txt in texts.split('\n') if len(txt.strip()) != 0]
+            textAdd = ''
+            contSeg = 0 
+            for tx, text in enumerate(textSplit):
+                if tx%14 == 0 and tx != 0:
+                    contSeg += 1
+                    s = p.slides.add_slide(p.slide_layouts[5])
+                    titlePara = s.shapes.title.text_frame.paragraphs[0]
+                    titlePara.font.name = "Times New Roman"
+                    titlePara.font.size = Pt(18)
+                    titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
+                    txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
+                    txt_frame = txt_box.text_frame
+                    n = txt_frame.add_paragraph()
+                    string = wrapper.fill(text=textAdd)
+                    n.text = string
+                    n.alignment = PP_ALIGN.JUSTIFY
+                    textAdd = ''
+                    textAdd += text + '\n'
+                else:
+                    textAdd += text + '\n'
+            s = p.slides.add_slide(p.slide_layouts[5])
+            titlePara = s.shapes.title.text_frame.paragraphs[0]
+            titlePara.font.name = "Times New Roman"
+            titlePara.font.size = Pt(18)
+            titlePara.text = f'Arquivo {name} - página {dctAll} - segmento {contSeg}'
+            txt_box = s.shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
+            txt_frame = txt_box.text_frame
+            n = txt_frame.add_paragraph()
+            string = wrapper.fill(text=textAdd)
+            n.text = string
+            n.alignment = PP_ALIGN.JUSTIFY
+        p.save(fileSlide)
+        listSlides.append(fileSlide)
+    return listSlides
 
 @st.cache_data   
 def createImgQrCode():
@@ -395,7 +406,7 @@ def removeAllWords(filePdf):
     name, ext = os.path.splitext(filePdf)
     outputPdf = name + f'_without_words{ext}'
     docPdf = pymupdf.open(filePdf)
-    textSearch = st.session_state[keyWord][0]
+    textSearch = st.session_state[keyWords][0]
     for pageNum in range(docPdf.page_count):
         page = docPdf.load_page(pageNum)
         textInstances = page.search_for(textSearch)
@@ -421,35 +432,28 @@ def lockAllPages(filePdf):
     outputPdf = name + f'_lock{ext}'
     docPdf.save(outputPdf, 
                 encryption=pymupdf.PDF_ENCRYPT_AES_256, 
-                user_pw=st.session_state[keyWord][1])
+                user_pw=st.session_state[keyWords][1])
     return outputPdf    
 
 def unLockAllPages(docPdf, namePdf):
     name, ext = os.path.splitext(namePdf)
     outputPdf = name + f'_unlock{ext}'
-    rc = docPdf.authenticate(st.session_state[keyWord][1])
+    rc = docPdf.authenticate(st.session_state[keyWords][1])
     docPdf.save(outputPdf, 
                 encryption=pymupdf.PDF_ENCRYPT_NONE)
     return outputPdf
-            
-def selPdfToImg(docPdf, numPgOne, numPgTwo, namePdf, index): 
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
-    listImgs = imagesConvert(outputPdf)
-    downloadExt(listImgs, namePdf, numPgOne, numPgTwo, 'pdf_img')
     
-def selPdfToDocx(docPdf, numPgOne, numPgTwo, namePdf, index): 
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
-    fileDocx = docxConvert(outputPdf)
-    with open(fileDocx, "rb") as file:
-        byFinal = file.read()
-    mensResult(4, 0, 'docx', byFinal, fileDocx)
-    
-def selPdfToPPtx(docPdf, numPgOne, numPgTwo, namePdf, index):
-    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, False)
-    filePptx = ppTxConvert(outputPdf)
-    with open(filePptx, "rb") as file:
-        byFinal = file.read()
-    mensResult(4, 0, 'pptx', byFinal, filePptx)
+def selPdfToAll(docPdf, numPgOne, numPgTwo, namePdf, index, rotate, sufix):
+    outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, rotate)
+    if sufix.find('img') >= 0:
+        listFiles = imagesConvert(outputPdf)
+    elif sufix.find('doc') >= 0:
+        listFiles = docxConvert(outputPdf)
+    elif sufix.find('table') >= 0:
+        listFiles = tableConvert(outputPdf)
+    elif sufix.find('slide') >= 0:
+        listFiles = ppTxConvert(outputPdf)
+    downloadExt(listFiles, namePdf, numPgOne, numPgTwo, sufix)
     
 def selPdfToQrcode(docPdf, numPgOne, numPgTwo, namePdf, index):
     outputPdf = createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, True)
@@ -532,6 +536,7 @@ def selDelPgs(docPdf, numPgOne, numPgTwo, namePdf, mode, index):
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
     listPgs = seqPages(numPgOne, numPgTwo)
+    st.write(listPgs)
     if mode == 0:
         outputPdf = f'{name}_sel_{numPgOne + 1}_{numPgTwo}{ext}'
         listSel = [pg for pg in range(numPgOne, numPgTwo) if pg in listPgs]
@@ -688,25 +693,30 @@ def exibeWord():
             else:
                 typeInput = 'default'
                 wordInput = 'Digite a palavra a ser deletada. Maiúsculas/minúsculas são ignoradas, mas a acentuação será levada em conta.'
-            optWord = st.text_input(label=f'Digite a {optWord.lower()}.', key=keyWord[ind], placeholder='', 
+            optWord = st.text_input(label=f'Digite a {optWord.lower()}.', key=keyWords[ind], placeholder='', 
                                     value='', type=typeInput, help=wordInput)
             buttReturn = st.button('retornar')        
             if buttReturn:
-                del st.session_state[keyWord]
-                st.session_state[keyWord] = ['', '', '']
-                st.session_state[keyWord][ind] = optWord
+                del st.session_state[keyWords]
+                st.session_state[keyWords] = ['', '', '']
+                st.session_state[keyWords][ind] = optWord
                 st.rerun()            
     config()
                 
 @st.dialog(' ')
 def config(str):
-    st.text(str)  
+    st.markdown(str)  
     
-@st.dialog('Critérios')
+@st.dialog(' ')
 def windowAdd(numPgOne, numPgTwo):
-    selModel = st.selectbox(label=f'Páginas a considerar no intervalo de :blue[**{numPgOne}**] a :blue[**{numPgTwo}**]', 
-                            options=optionsSel, index=st.session_state[listKeys[5]])
+    colMode, colValue = st.columns([5, 3])
+    selModel = colMode.selectbox(label=f'Páginas no intervalo de :blue[**{numPgOne}**] a :blue[**{numPgTwo}**]', 
+                                 options=optionsSel)
     if selModel:
+        if selModel == optionsSel[-1]:
+            valueNum = colValue.number_input(label=f'Múltiplo', min_value=numPgOne, max_value=numPgTwo) 
+            del st.session_state[listKeys[6]]
+            st.session_state[listKeys[6]] = valueNum            
         del st.session_state[listKeys[5]]
         st.session_state[listKeys[5]] = optionsSel.index(selModel)
     if st.button('retornar'):
@@ -719,11 +729,17 @@ def windowDocsImgs(keys, mode):
             docFormats = ['.csv', '.ods', '.xls', '.xlsx']
         case 1:
             docFormats = ['.doc', '.docx', '.odt', '.rtf']
-        case _: 
-            docFormats = ['.ico', '.jpg', '.jpeg', '.png']
-    colSeg, colMark = st.columns([4, 3.5], vertical_alignment="top")
-    segms = colSeg.segmented_control(label='Formatos de saída', options=docFormats, selection_mode='multi', 
-                                 default=None)    
+        case 2: 
+            docFormats = ['.jpg', '.jpeg', '.png', '.pnm']
+        case _:
+            docFormats = ['.odp', '.ppt', '.pptx']
+    colSeg, colMark = st.columns([5, 3.5], vertical_alignment='top')
+    if mode in [0, 2]: 
+        segms = colSeg.segmented_control(label='Formatos de saída', options=docFormats, selection_mode='multi', 
+                                 default=None)
+    else:
+        segms = colSeg.pills(label='Formatos de saída', options=docFormats, selection_mode='multi', 
+                                 default=None)
     nSegms = len(segms)
     if nSegms > 0:
         colMark.markdown('')
@@ -733,7 +749,7 @@ def windowDocsImgs(keys, mode):
             expr = 'formatos'    
         colMark.markdown(f'{nSegms} {expr}:\n{segms}')
     else:
-        colMark.markdown('Nada selecionado!')
+        colMark.code('Nada selecionado!', language='Python')
     if st.button('retornar'):
         del st.session_state[keys]
         st.session_state[keys] = []
@@ -768,17 +784,8 @@ def seqPages(numPgOne, numPgTwo):
         case 3:
             listPgs = [pg for pg in range(numPgOne, numPgTwo)]
         case 4:
-            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%3==0]
-        case 5:
-            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%4==0]
-        case 6:
-           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%5==0]
-        case 7:
-           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%10==0]
-        case 8:
-           listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%15==0] 
-        case 9:
-            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%20==0]
+            mult = st.session_state[listKeys[6]]
+            listPgs = [pg for pg in range(numPgOne, numPgTwo) if (pg+1)%mult==0]        
     return listPgs            
 
 def main():
@@ -805,7 +812,7 @@ def main():
                                              max_value=valMxSize)
             valPgAngle = colSlider.select_slider(label='Ângulo de rotação', options=valAngles, 
                                                  key=listKeys[2])
-            colPgs, colWords, colOptPlans, colOptDocs, colOptImgs, colPerson = st.columns(spec=6)
+            colPgs, colWords, colOptPlans, colOptDocs, colOptImgs, colOptSlides, colPerson = st.columns(spec=7)
             buttToPages = colPgs.button(label=dictButts[keysButts[15]][0], use_container_width=True, 
                                             icon=dictButts[keysButts[15]][1], key=keysButts[15], 
                                             help=dictButts[keysButts[15]][-1])
@@ -819,8 +826,11 @@ def main():
                                             icon=dictButts[keysButts[25]][1], key=keysButts[25], 
                                             help=dictButts[keysButts[25]][-1])
             buttOptImgs = colOptImgs.button(label=dictButts[keysButts[24]][0], use_container_width=True, 
-                                          icon=dictButts[keysButts[24]][1], key=keysButts[24], 
-                                          help=dictButts[keysButts[24]][-1]) 
+                                            icon=dictButts[keysButts[24]][1], key=keysButts[24], 
+                                            help=dictButts[keysButts[24]][-1]) 
+            buttOptSlides = colOptSlides.button(label=dictButts[keysButts[26]][0], use_container_width=True, 
+                                                icon=dictButts[keysButts[26]][1], key=keysButts[26], 
+                                                help=dictButts[keysButts[26]][-1]) 
             buttPerson = colPerson.button(label=dictButts[keysButts[16]][0], use_container_width=True, 
                                               icon=dictButts[keysButts[16]][1], key=keysButts[16], 
                                               help=dictButts[keysButts[16]][-1])
@@ -899,12 +909,13 @@ def main():
             if buttToPages:
                 windowAdd(numPgOne, numPgTwo)
             if buttOptPlans:
-               windowDocsImgs(keyDocs, 0)
+               windowDocsImgs(keyTables, 0)
             if buttOptDocs: 
                 windowDocsImgs(keyDocs, 1)  
             if buttOptImgs:
-                windowDocsImgs(keyImgs, 2)
-            
+                windowDocsImgs(keyImgs, 2) 
+            if buttOptSlides: 
+                windowDocsImgs(keySlides, 3)
             if buttPgAct:  
                 try:
                     expr = f'{dictButts[keysButts[0]][2]} {pdfName} n{exprPre}'
@@ -964,7 +975,7 @@ def main():
                     config(f'😢 Divisão em pedaços fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttPdfMark:
                 try:
-                    valPgMark = st.session_state[keyWord][2].strip()
+                    valPgMark = st.session_state[keyWords][2].strip()
                     if valPgMark.strip() == '':
                         config("😢 Nenhuma marca d'água foi digitada!\nAbra a tela e digite o texto desejado!") 
                     else:
@@ -985,32 +996,46 @@ def main():
                 st.session_state[listKeys[5]] = 0
                 iniFinally(1) 
             if buttTxtTable:
-                try:
-                    expr = f'{dictButts[keysButts[10]][2]} {pdfName} n{exprPre}'
-                    with st.spinner(expr):
-                        selTablesPgs(docPdf, numPgOne, numPgTwo, pdfName, indexAng)          
-                except:
-                    config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                nTables = len(st.session_state[keyTables])
+                if nTables == 0:
+                    config('😢 Nenhum tipo de tabela de saída foi escolhido!\nAbra a tela para realizar essa escolha!')
+                else:
+                    try:
+                        expr = f'{dictButts[keysButts[10]][2]} {pdfName} n{exprPre}'
+                        with st.spinner(expr):
+                            selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, False, 'pdf_table')          
+                    except Exception as error:
+                        st.text(error)
+                        config(f'😢 Extração de tabelas fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToWord:
-                st.write(st.session_state[keyDocs])
-                try:
-                    expr = f'{dictButts[keysButts[11]][2]} {pdfName} n{exprPre}'
-                    with st.spinner(expr):
-                        selPdfToDocx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)    
-                except:
-                    config(f'😢 Conversão de PDF em docx fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                nDocs = len(st.session_state[keyDocs])
+                if nDocs == 0:
+                    config('😢 Nenhum tipo de documento de saída foi escolhido!\nAbra a tela para realizar essa escolha!')
+                else:
+                    try:
+                        expr = f'{dictButts[keysButts[11]][2]} {pdfName} n{exprPre}'
+                        with st.spinner(expr):
+                            selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, False, 'pdf_doc') 
+                    except:
+                        config(f'😢 Conversão de PDF em docx fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToImg:
-                try:
-                    expr = f'{dictButts[keysButts[12]][2]} {pdfName} n{exprPre}'
-                    with st.spinner(expr):
-                        selPdfToImg(docPdf, numPgOne, numPgTwo, pdfName, indexAng)
-                except: 
-                    config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
+                nImgs = len(st.session_state[keyImgs])
+                if nImgs == 0:
+                    config('😢 Nenhum tipo de imagem foi escolhido!\nAbra a tela para realizar essa escolha!')
+                else:
+                    try:
+                        expr = f'{dictButts[keysButts[12]][2]} {pdfName} n{exprPre}'
+                        with st.spinner(expr):
+                            selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, True, 'pdf_img')
+                    except Exception as error: 
+                        st.text(error)
+                        config(f'😢 Conversão de PDF em imagem fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttToPower:
                 try:
                     expr = f'{dictButts[keysButts[13]][2]} {pdfName} n{exprPre}'
                     with st.spinner(expr):
-                        selPdfToPPtx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                      
+                        selPdfToAll(docPdf, numPgOne, numPgTwo, pdfName, indexAng, False, 'pdf_slide')
+                        #selPdfToPPtx(docPdf, numPgOne, numPgTwo, pdfName, indexAng)                      
                 except:
                     config(f'😢 Conversão de PDF em Power Point fracassada!\n🔴 arquivo {pdfName}, intervalo de páginas {numPgOne}-{numPgTwo}!')
             if buttQrcode:
@@ -1032,7 +1057,7 @@ def main():
                 exibeWord()
             if buttRemoveWords:
                 try:
-                    textWrite = st.session_state[keyWord][0].strip()
+                    textWrite = st.session_state[keyWords][0].strip()
                     wordOk = True
                 except:
                     wordOk = False
@@ -1054,7 +1079,7 @@ def main():
                         block = ''
                     if buttDecodePdf:
                         block = 'des'
-                    textWrite = st.session_state[keyWord][1].strip()
+                    textWrite = st.session_state[keyWords][1].strip()
                     wordOk = True
                 except:
                     wordOk = False
@@ -1099,33 +1124,33 @@ if __name__ == '__main__':
     global namesTeste, nameApp 
     global qrCodeKeys, valuesReserve
     global dictButts, keysButts
-    global keyWord
+    global keyWords, keyDocs, keyImgs, keyTables, keySlides
     nameApp = 'Ferramentas/PDF'
     valAngles = ['-360°', '-270°', '-180°', '-90°', '0°', '90°', '180°', '270°', '360°']
-    optionsSel = ['', 'pares', 'não pares', 'todos', 'de 3 em 3', 'de 4 em 4', 'de 5 em 5', 'de 10 em 10', 'de 15 em 15', 
-                  'de 20 em 20'] 
+    optionsSel = ['', 'pares', 'não pares', 'todos', 'múltiplos de ']
     dictKeys = {'pgOne': 1, 
                 'pgTwo': 1, 
                 'pgAngle': valAngles[0], 
                 'pgSize': 0.01, 
                 'pgMark': '', 
-                'selModelExtra': 0}
+                'selModelExtra': 0, 
+                'valueMult': 0}
     listKeys = list(dictKeys.keys())
-    dictButts = {'buttActIni': ['Divisão/páginas', ':material/vertical_split:', 'Dividindo o arquivo ', 
+    dictButts = {'buttActIni': ['Divisão/páginas', ':material/splitscreen:', 'Dividindo o arquivo ', 
                                 'Divide o arquivo de acordo com o intervalo de páginas.'], 
-                 'buttTxt': ['Texto', ':material/description:', 'Extraindo texto do arquivo ', 
+                 'buttTxt': ['Texto', ':material/text_ad:', 'Extraindo texto do arquivo ', 
                              'Extrai texto do arquivo e grava o resultado como txt.'],
-                 'buttSel': ['Seleção', ':material/description:', 'Selecionando do arquivo ', 
+                 'buttSel': ['Seleção', ':material/filter_alt:', 'Selecionando do arquivo ', 
                              'Cria novo arquivo pdf com as páginas selecionadas.'], 
-                 'buttDel': ['Exclusão/páginas', ':material/delete:', 'Deletando do arquivo ', 
+                 'buttDel': ['Exclusão/páginas', ':material/scan_delete:', 'Deletando do arquivo ', 
                              'Deleta as páginas selecionadas.'], 
-                 'buttClear': ['Limpeza', ':material/square:', 'Limpando os campos da tela.', 
+                 'buttClear': ['Limpeza', ':material/cleaning_services:', 'Limpando os campos da tela.', 
                                'Limpa os campos da tela, exceto o arquivo escolhido.'], 
                  'buttUrls': ['URLs', ':material/link:', 'Extraindo links/URLs do arquivo ', 
                               'Pesquisa as URLs existentes no arquivo.'], 
                  'buttImgs': ['Imagens', ':material/image:', 'Extraindo imagens do arquivo', 
                               'Extrai imagens do arquivo do arquivo e grava-as individualmente.'], 
-                 'buttSize': ['Divisão/tamanho', ':material/docs:', 'Dividindo por tamanho o arquivo ', 
+                 'buttSize': ['Divisão/tamanho', ':material/view_comfy:', 'Dividindo por tamanho o arquivo ', 
                               'Divide o arquivo de acordo com o tamanho escolhido.'], 
                  'buttMark': ['Marcação', ':material/approval:', 'Marcando o rodapé do arquivo ', 
                               'Insere marca de água no rodapé do arquivo.'], 
@@ -1133,7 +1158,7 @@ if __name__ == '__main__':
                               'Exibe informações sobre o arquivo inteiro.'], 
                  'buttTxtTab': ['Pdf/planilha', ':material/transform:', 'Abrindo janela com formatos de tabela ', 
                                 'Abre janela com formatos de tabela para as páginas selecionadas.'], 
-                 'buttToWord': ['Pdf/documento', ':material/transform:', 'Convertendo em Word o arquivo ', 
+                 'buttToWord': ['Pdf/documento', ':material/convert_to_text:', 'Convertendo em Word o arquivo ', 
                                 'Converte em formato docx as páginas selecionadas do arquivo.'], 
                  'buttToImg': ['Pdf/imagem', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 
                                'Converte em formato jpg as páginas selecionadas.'], 
@@ -1141,7 +1166,7 @@ if __name__ == '__main__':
                                  'Converte em slide do PowerPoint as páginas selecionadas.'], 
                  'buttQrcode': ['Qrcode', ':material/qr_code_2:', 'Inserindo qrcode no canto inferior direito do arquivo ', 
                                 'Insere qrcode no rodapé das páginas selecionadas.'], 
-                 'buttPgs': ['Opções/página', ':material/settings:', 'Exibindo opções de seleção de páginas do arquivo ', 
+                 'buttPgs': ['Tela/página', ':material/view_list:', 'Exibindo opções de seleção de páginas do arquivo ', 
                              'Exibe opções de seleção de páginas.'],
                  'buttToPerson': ['Dados/qrcode', ':material/person_edit:', 'Abrindo campos a preencher para inserção do qrcode', 
                                   'Abre opções para preenchimento do qrcode.'], 
@@ -1149,7 +1174,7 @@ if __name__ == '__main__':
                                   'Remove todas as imagens das páginas selecionadas.'], 
                  'buttRemWords': ['Exclusão/texto', ':material/clear_all:', 'Removendo todas as ocorrências do texto', 
                                   'Remove o texto das páginas selecionadas.'], 
-                 'buttOptWords': ['Opções/texto', ':material/text_ad:', 'Abrindo tela para inserção de senha ou de texto a ser substituído', 
+                 'buttOptWords': ['Tela/texto', ':material/text_ad:', 'Abrindo tela para inserção de senha ou de texto a ser substituído', 
                                   'Abre tela para digitar senha ou texto a ser apagado.'], 
                  'buttCodify': ['Bloqueio', ':material/lock:', 'Bloqueando o arquivo', 
                                 'Cria senha de bloqueio para o arquivo criado com as´páginas selecionadas.'], 
@@ -1157,30 +1182,36 @@ if __name__ == '__main__':
                                   'Desbloqueia todas as páginas do arquivo.'], 
                  'buttNoMark': ['Exclusão/marcas', ':material/variable_remove:', 'Removendo as marcas de água do arquivo', 
                                 "Cria arquivo com as´páginas selecionadas e sem marca d'água."], 
-                 'buttTypeImgs': ['Opções/planilha', ':material/variable_remove:', 'Abrindo janela para escolha de opções de imagem.', 
+                 'buttTypeImgs': ['Tela/planilha', ':material/format_list_bulleted:', 'Abrindo janela para escolha de opções de imagem.', 
                                   'Abre janela para escolha de tipos de imagem.'], 
-                 'buttOptImgs': ['Opções/imagem', ':material/modeling:', 'Abre janela para seleção de opções de imagem ', 
-                                 'Abre janela com formato de imagem para as páginas selecioandas.'], 
-                 'buttOptDocs': ['Opções/doc', ':material/modeling:', 'Convertendo em imagem (png) o arquivo ', 
-                                 'Abre janela com formato de documento para as páginas selecioandas.']}
+                 'buttOptImgs': ['Tela/imagem', ':material/checklist:', 'Abrindo janela para seleção de opções de imagem ', 
+                                 'Abre janela com formato de imagem para as páginas selecionadas.'], 
+                 'buttOptDocs': ['Tela/doc', ':material/table:', 'Abrindo janela com opções de documento ', 
+                                 'Abre janela com formato de documento para as páginas selecioandas.'], 
+                 'buttOptSlides': ['Tela/slide', ':material/event_list:', 'Abrindo janela com opções de slide ', 
+                                   'Abre janela com formato de slide para as páginas selecionadas.']}
     keysButts = list(dictButts.keys())
     countPg = []
     namesTeste = []
     dirBin = r'C:\Users\ACER\Documents\bin'
     valuesReserve = ['xxxxxxxx xxxxxxx', 'xxxxxxxxxxx', 'xxxxxxxx@xxxxx.xxxx']
     qrCodeKeys = ['one', 'two', 'three']
-    keyWord = ['', '', '']
+    keyWords = ['', '', '']
+    keyTables = []
     keyDocs = []
     keyImgs = []
+    keySlides = []
     for key in qrCodeKeys:
         if key not in st.session_state:
             st.session_state[key] = ''  
-    if keyWord not in st.session_state:
-        st.session_state[keyWord] = ['', '', '']
+    if keyWords not in st.session_state:
+        st.session_state[keyWords] = ['', '', '']
     if keyDocs not in st.session_state:
         st.session_state[keyDocs] = []
     if keyImgs not in st.session_state:
         st.session_state[keyImgs] = []
+    if keySlides not in st.session_state:
+        st.session_state[keySlides] = []
     st.set_page_config(page_title=nameApp,  page_icon=":material/files:", 
                        layout='wide')
     st.cache_data.clear() 
