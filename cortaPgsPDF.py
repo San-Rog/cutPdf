@@ -67,7 +67,11 @@ def mensResult(value, nFiles, modelButt, fileTmp, fileFinal):
     if opt == 0:
         crt = optionsSel[3]
     else:
-        crt = f'{optionsSel[opt]}{st.session_state[listKeys[6]]}'   
+        mult = st.session_state[listKeys[6]]
+        if mult == 0:
+            crt = f'{optionsSel[opt]}' 
+        else:
+            crt = f'{optionsSel[opt]} {st.session_state[listKeys[6]]}' 
     colMens, colDown = st.columns([8, 2]) 
     if value == 1:
         if modelButt == 'zip': 
@@ -201,8 +205,13 @@ def createPdfSel(docPdf, numPgOne, numPgTwo, namePdf, index, rotate):
     numPgOne -= 1    
     inputPdf = docPdf
     name, ext = os.path.splitext(namePdf)
-    outputPdf = f'{name}_{numPgOne + 1}_{numPgTwo}.pdf'
-    listSel = [pg for pg in range(numPgOne, numPgTwo)]
+    typeSeq = st.session_state[listKeys[5]]
+    if st.session_state[listKeys[5]] == 0:
+        listSel = [pg for pg in range(numPgOne, numPgTwo)]
+        outputPdf = f'{name}_{numPgOne + 1}_{numPgTwo}.pdf'    
+    else:
+        listSel = seqPages(numPgOne, numPgTwo)
+        outputPdf = f'{name}_{numPgOne + 1}_{numPgTwo}_.pdf'
     docPdf.select(listSel)
     docPdf.save(outputPdf)
     if rotate:
@@ -1218,4 +1227,3 @@ if __name__ == '__main__':
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
-
