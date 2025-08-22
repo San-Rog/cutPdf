@@ -796,7 +796,7 @@ def main():
     global sufix
     sufix = ['']
     with st.container(border=6, key='contOne'):
-        uploadPdf = st.file_uploader('Selecionar arquivos PDF', 
+        uploadPdf = st.file_uploader('Selecionar arquivo PDF', 
                                      type=['pdf'], 
                                      accept_multiple_files=False)
         if uploadPdf is not None:
@@ -1218,3 +1218,4 @@ if __name__ == '__main__':
         css = f.read()
     st.markdown(f'<style>{css}</style>', unsafe_allow_html=True) 
     main()
+
